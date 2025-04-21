@@ -14,6 +14,9 @@
 #include <wifi_station.h>
 #include "esp_camera.h" 
 
+// 引入测试图片
+#include "images/gImage_test.h"
+
 #define TAG "LichuangDevBoard"
 
 LV_FONT_DECLARE(font_puhui_20_4);
@@ -192,6 +195,43 @@ public:
         InitializeCamera();
         InitializeIot();
         GetBacklight()->RestoreBrightness();
+        
+        // 创建画布并显示测试图片
+        Display* display = GetDisplay();
+        if (display) {
+            ESP_LOGI(TAG, "创建画布显示测试图片");
+            // 创建画布
+            display->CreateCanvas();
+            
+            // 显示测试图片到画布
+            // 测试图片大小为 239x283，在屏幕上居中显示
+            int imgWidth = 320;
+            int imgHeight = 240;
+            int x = (display->width() - imgWidth) / 2;
+            int y = (display->height() - imgHeight) / 2;
+            
+            // 创建临时缓冲区用于字节序转换
+            uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
+            if (convertedData) {
+                // 转换图像数据，RGB565格式需要交换字节顺序
+                for (int i = 0; i < imgWidth * imgHeight; i++) {
+                    uint16_t pixel = ((uint16_t*)gImage_test)[i];
+                    // 交换字节顺序（大小端转换）
+                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                }
+                
+                // 调用显示函数，使用转换后的数据
+                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                
+                ESP_LOGI(TAG, "测试图片已显示在画布上，位置: x=%d, y=%d, 宽=%d, 高=%d", 
+                        x, y, imgWidth, imgHeight);
+                
+                // 释放临时缓冲区
+                delete[] convertedData;
+            } else {
+                ESP_LOGE(TAG, "无法分配内存进行图像转换");
+            }
+        }
     }
 
     virtual AudioCodec* GetAudioCodec() override {
