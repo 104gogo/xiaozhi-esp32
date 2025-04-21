@@ -16,6 +16,24 @@
 
 // 引入测试图片
 #include "images/gImage_test.h"
+#include "images/xuesheng/gImage_aa.h"
+
+// 引入chuyin目录的图片
+#include "images/chuyin/gImage_1.h"
+#include "images/chuyin/gImage_2.h"
+#include "images/chuyin/gImage_3.h"
+#include "images/chuyin/gImage_4.h"
+#include "images/chuyin/gImage_5.h"
+#include "images/chuyin/gImage_6.h"
+#include "images/chuyin/gImage_7.h"
+
+
+#include "images/yujie/gImage_leidian.h"
+
+#include "images/luoli/gImage_woshi1.h"
+#include "images/luoli/gImage_woshi3.h"
+
+#include "images/fengjing/gImage_haibian.h"
 
 #define TAG "LichuangDevBoard"
 
@@ -44,6 +62,7 @@ private:
     Button boot_button_;
     LcdDisplay* display_;
     Pca9557* pca9557_;
+    TaskHandle_t image_task_handle_ = nullptr; // 图片显示任务句柄
 
     void InitializeI2c() {
         // Initialize I2C peripheral
@@ -185,6 +204,112 @@ private:
         thing_manager.AddThing(iot::CreateThing("Camera"));
 
     }
+    
+    // 启动图片循环显示任务
+    void StartImageSlideshow() {
+        xTaskCreate(ImageSlideshowTask, "img_slideshow", 4096, this, 3, &image_task_handle_);
+        ESP_LOGI(TAG, "图片循环显示任务已启动");
+    }
+    
+    // 图片循环显示任务函数
+    static void ImageSlideshowTask(void* arg) {
+        LichuangDevBoard* board = static_cast<LichuangDevBoard*>(arg);
+        Display* display = board->GetDisplay();
+        
+        if (!display) {
+            ESP_LOGE(TAG, "无法获取显示设备");
+            vTaskDelete(NULL);
+            return;
+        }
+        
+        // 创建画布（如果不存在）
+        if (!display->HasCanvas()) {
+            display->CreateCanvas();
+        }
+        
+        // 设置图片显示参数
+        int imgWidth = 320;
+        int imgHeight = 240;
+        int x = (display->width() - imgWidth) / 2;
+        int y = (display->height() - imgHeight) / 2;
+        
+        // 设置图片数组
+        const uint8_t* imageArray[] = {
+            gImage_woshi1,
+            gImage_woshi3
+        };
+        const char* imageNames[] = {
+            "图片1",
+            "图片2"
+        };
+        const int totalImages = 2;
+        
+        // 创建临时缓冲区用于字节序转换
+        uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
+        if (!convertedData) {
+            ESP_LOGE(TAG, "无法分配内存进行图像转换");
+            vTaskDelete(NULL);
+            return;
+        }
+        
+        // 如果只有一张图片，就只显示一次
+        if (totalImages == 1) {
+            // 获取图片
+            const uint8_t* currentImage = imageArray[0];
+            const char* currentName = imageNames[0];
+            ESP_LOGI(TAG, "显示图片: %s", currentName);
+            
+            // 转换图像数据
+            for (int i = 0; i < imgWidth * imgHeight; i++) {
+                uint16_t pixel = ((uint16_t*)currentImage)[i];
+                // 交换字节顺序（大小端转换）
+                convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+            }
+            
+            // 显示图片到画布
+            display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+            
+            // 显示图片名称
+            ESP_LOGI(TAG, "显示图片名称: %s", currentName);
+            
+            // 保持任务活跃但不做任何事情
+            while (true) {
+                vTaskDelay(pdMS_TO_TICKS(10000)); // 每10秒进行一次空循环
+            }
+        } else {
+            // 循环显示图片
+            int currentIndex = 0;
+            while (true) {
+                // 获取当前图片
+                const uint8_t* currentImage = imageArray[currentIndex];
+                const char* currentName = imageNames[currentIndex];
+                ESP_LOGI(TAG, "显示图片: %s", currentName);
+                
+                // 转换图像数据
+                for (int i = 0; i < imgWidth * imgHeight; i++) {
+                    uint16_t pixel = ((uint16_t*)currentImage)[i];
+                    // 交换字节顺序（大小端转换）
+                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                }
+                
+                // 显示图片到画布
+                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                
+                // 显示图片名称
+                ESP_LOGI(TAG, "显示图片名称: %s", currentName);
+                
+                // 延时1秒
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                
+                // 更新索引
+                currentIndex = (currentIndex + 1) % totalImages;
+            }
+        }
+        
+        // 释放资源（实际上不会执行到这里，除非任务被外部终止）
+        delete[] convertedData;
+        vTaskDelete(NULL);
+    }
 
 public:
     LichuangDevBoard() : boot_button_(BOOT_BUTTON_GPIO) {
@@ -196,42 +321,8 @@ public:
         InitializeIot();
         GetBacklight()->RestoreBrightness();
         
-        // 创建画布并显示测试图片
-        Display* display = GetDisplay();
-        if (display) {
-            ESP_LOGI(TAG, "创建画布显示测试图片");
-            // 创建画布
-            display->CreateCanvas();
-            
-            // 显示测试图片到画布
-            // 测试图片大小为 239x283，在屏幕上居中显示
-            int imgWidth = 320;
-            int imgHeight = 240;
-            int x = (display->width() - imgWidth) / 2;
-            int y = (display->height() - imgHeight) / 2;
-            
-            // 创建临时缓冲区用于字节序转换
-            uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
-            if (convertedData) {
-                // 转换图像数据，RGB565格式需要交换字节顺序
-                for (int i = 0; i < imgWidth * imgHeight; i++) {
-                    uint16_t pixel = ((uint16_t*)gImage_test)[i];
-                    // 交换字节顺序（大小端转换）
-                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
-                }
-                
-                // 调用显示函数，使用转换后的数据
-                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-                
-                ESP_LOGI(TAG, "测试图片已显示在画布上，位置: x=%d, y=%d, 宽=%d, 高=%d", 
-                        x, y, imgWidth, imgHeight);
-                
-                // 释放临时缓冲区
-                delete[] convertedData;
-            } else {
-                ESP_LOGE(TAG, "无法分配内存进行图像转换");
-            }
-        }
+        // 启动图片循环显示任务
+        StartImageSlideshow();
     }
 
     virtual AudioCodec* GetAudioCodec() override {
