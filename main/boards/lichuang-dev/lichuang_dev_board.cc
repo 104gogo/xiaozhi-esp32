@@ -6,6 +6,7 @@
 #include "config.h"
 #include "i2c_device.h"
 #include "iot/thing_manager.h"
+#include "audio_processing/audio_processor.h"
 
 #include <esp_log.h>
 #include <esp_lcd_panel_vendor.h>
@@ -14,26 +15,11 @@
 #include <wifi_station.h>
 #include "esp_camera.h" 
 
-// 引入测试图片
-#include "images/gImage_test.h"
-#include "images/xuesheng/gImage_aa.h"
-
-// 引入chuyin目录的图片
-#include "images/chuyin/gImage_1.h"
-#include "images/chuyin/gImage_2.h"
-#include "images/chuyin/gImage_3.h"
-#include "images/chuyin/gImage_4.h"
-#include "images/chuyin/gImage_5.h"
-#include "images/chuyin/gImage_6.h"
-#include "images/chuyin/gImage_7.h"
 
 
-#include "images/yujie/gImage_leidian.h"
 
 #include "images/luoli/gImage_woshi1.h"
 #include "images/luoli/gImage_woshi3.h"
-
-#include "images/fengjing/gImage_haibian.h"
 
 #define TAG "LichuangDevBoard"
 
@@ -63,7 +49,7 @@ private:
     LcdDisplay* display_;
     Pca9557* pca9557_;
     TaskHandle_t image_task_handle_ = nullptr; // 图片显示任务句柄
-
+    
     void InitializeI2c() {
         // Initialize I2C peripheral
         i2c_master_bus_config_t i2c_bus_cfg = {
@@ -222,6 +208,11 @@ private:
             return;
         }
         
+        // 获取AudioProcessor实例的事件组 - 从application.h中直接获取
+        auto& app = Application::GetInstance();
+        // 这里使用Application中可用的方法来判断音频状态
+        // 根据编译错误修改为可用的方法
+        
         // 创建画布（如果不存在）
         if (!display->HasCanvas()) {
             display->CreateCanvas();
@@ -252,58 +243,72 @@ private:
             return;
         }
         
-        // 如果只有一张图片，就只显示一次
-        if (totalImages == 1) {
-            // 获取图片
-            const uint8_t* currentImage = imageArray[0];
-            const char* currentName = imageNames[0];
-            ESP_LOGI(TAG, "显示图片: %s", currentName);
+        // 先显示第一张图片
+        int currentIndex = 0;
+        const uint8_t* currentImage = imageArray[currentIndex];
+        const char* currentName = imageNames[currentIndex];
+        
+        // 转换并显示第一张图片
+        for (int i = 0; i < imgWidth * imgHeight; i++) {
+            uint16_t pixel = ((uint16_t*)currentImage)[i];
+            convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+        }
+        display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+        ESP_LOGI(TAG, "初始显示图片: %s", currentName);
+        
+        // 持续监控和处理图片显示
+        TickType_t lastUpdateTime = xTaskGetTickCount();
+        const TickType_t cycleInterval = pdMS_TO_TICKS(1000); // 图片切换间隔1秒
+        
+        // 定义用于判断是否正在播放音频的变量
+        bool isAudioPlaying = false;
+        bool wasAudioPlaying = false;
+        
+        while (true) {
+            // 检查是否正在播放音频 - 使用应用程序状态判断
+            isAudioPlaying = (app.GetDeviceState() == kDeviceStateSpeaking);
             
-            // 转换图像数据
-            for (int i = 0; i < imgWidth * imgHeight; i++) {
-                uint16_t pixel = ((uint16_t*)currentImage)[i];
-                // 交换字节顺序（大小端转换）
-                convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
-            }
+            TickType_t currentTime = xTaskGetTickCount();
             
-            // 显示图片到画布
-            display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-            
-            // 显示图片名称
-            ESP_LOGI(TAG, "显示图片名称: %s", currentName);
-            
-            // 保持任务活跃但不做任何事情
-            while (true) {
-                vTaskDelay(pdMS_TO_TICKS(10000)); // 每10秒进行一次空循环
-            }
-        } else {
-            // 循环显示图片
-            int currentIndex = 0;
-            while (true) {
-                // 获取当前图片
-                const uint8_t* currentImage = imageArray[currentIndex];
-                const char* currentName = imageNames[currentIndex];
-                ESP_LOGI(TAG, "显示图片: %s", currentName);
+            // 如果正在播放音频且时间到了切换间隔
+            if (isAudioPlaying && (currentTime - lastUpdateTime >= cycleInterval)) {
+                // 更新索引到下一张图片
+                currentIndex = (currentIndex + 1) % totalImages;
+                currentImage = imageArray[currentIndex];
+                currentName = imageNames[currentIndex];
                 
-                // 转换图像数据
+                // 转换并显示新图片
                 for (int i = 0; i < imgWidth * imgHeight; i++) {
                     uint16_t pixel = ((uint16_t*)currentImage)[i];
-                    // 交换字节顺序（大小端转换）
                     convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
                 }
-                
-                // 显示图片到画布
                 display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                ESP_LOGI(TAG, "循环显示图片: %s (音频播放中)", currentName);
                 
-                // 显示图片名称
-                ESP_LOGI(TAG, "显示图片名称: %s", currentName);
-                
-                // 延时1秒
-                vTaskDelay(pdMS_TO_TICKS(1000));
-                
-                // 更新索引
-                currentIndex = (currentIndex + 1) % totalImages;
+                // 更新上次更新时间
+                lastUpdateTime = currentTime;
             }
+            // 如果不在播放音频但上一次检查时在播放，或者当前不在第一张图片
+            else if ((!isAudioPlaying && wasAudioPlaying) || (!isAudioPlaying && currentIndex != 0)) {
+                // 切换回第一张图片
+                currentIndex = 0;
+                currentImage = imageArray[currentIndex];
+                currentName = imageNames[currentIndex];
+                
+                // 转换并显示第一张图片
+                for (int i = 0; i < imgWidth * imgHeight; i++) {
+                    uint16_t pixel = ((uint16_t*)currentImage)[i];
+                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                }
+                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                ESP_LOGI(TAG, "返回显示初始图片: %s (音频播放停止)", currentName);
+            }
+            
+            // 更新上一次音频播放状态
+            wasAudioPlaying = isAudioPlaying;
+            
+            // 短暂延时，避免CPU占用过高
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
         
         // 释放资源（实际上不会执行到这里，除非任务被外部终止）
