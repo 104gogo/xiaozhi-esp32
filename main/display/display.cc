@@ -88,7 +88,10 @@ void Display::SetStatus(const char* status) {
     if (status_label_ == nullptr) {
         return;
     }
+    // 显示状态文本
     lv_label_set_text(status_label_, status);
+    
+    // 确保状态标签可见，通知标签隐藏
     lv_obj_clear_flag(status_label_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(notification_label_, LV_OBJ_FLAG_HIDDEN);
 }
@@ -102,7 +105,10 @@ void Display::ShowNotification(const char* notification, int duration_ms) {
     if (notification_label_ == nullptr) {
         return;
     }
+    // 显示通知文本
     lv_label_set_text(notification_label_, notification);
+    
+    // 确保通知标签可见，状态标签隐藏
     lv_obj_clear_flag(notification_label_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(status_label_, LV_OBJ_FLAG_HIDDEN);
 
@@ -298,8 +304,8 @@ void Display::CreateCanvas() {
     lv_canvas_set_buffer(canvas_, canvas_buffer_, width_, height_, LV_COLOR_FORMAT_RGB565);
     
     // 设置画布位置为全屏
-    lv_obj_set_pos(canvas_, 0, 0);
-    lv_obj_set_size(canvas_, width_, height_);
+    lv_obj_set_pos(canvas_, 25, 0);
+    lv_obj_set_size(canvas_, width_ - 25, height_);
     
     // 设置画布为透明
     lv_canvas_fill_bg(canvas_, lv_color_make(0, 0, 0), LV_OPA_TRANSP);

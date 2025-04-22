@@ -221,7 +221,7 @@ private:
         // 设置图片显示参数
         int imgWidth = 320;
         int imgHeight = 240;
-        int x = 30;
+        int x = 0;
         int y = 0;
         
         // 设置图片数组
