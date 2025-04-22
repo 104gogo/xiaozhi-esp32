@@ -392,8 +392,8 @@ private:
                     // 更新索引，循环播放youyong3
                     youyong3Index = (youyong3Index + 1) % youyong3ImageCount;
                     
-                    // 延长帧间隔，减少内存占用
-                    lastUpdateTime += pdMS_TO_TICKS(50);
+                    // 延长youyong3帧间隔，减慢播放速度
+                    lastUpdateTime += pdMS_TO_TICKS(250); // 增加额外250ms的延迟
                 } else if (isShowingYouyong2Outro) {
                     // 播放youyong2结束动画
                     currentImage = youyong2ImageArray[youyong2OutroIndex];
