@@ -263,6 +263,11 @@ private:
             gImage_youyong3_0004,
             gImage_youyong3_0005,
             gImage_youyong3_0006,
+            gImage_youyong3_0005,
+            gImage_youyong3_0004,
+            gImage_youyong3_0003,
+            gImage_youyong3_0002,
+            gImage_youyong3_0001,
         };
         const int youyong3ImageCount = sizeof(youyong3ImageArray) / sizeof(youyong3ImageArray[0]);
         
@@ -309,24 +314,37 @@ private:
             prevDeviceState = currentDeviceState;
             currentDeviceState = app.GetDeviceState();
             
-            // 当设备状态从非"听"状态变为"听"状态时，开始播放youyong2开场动画
-            if (currentDeviceState == kDeviceStateListening && prevDeviceState != kDeviceStateListening) {
+            // 当设备状态从非"听"非"说"状态变为"听"状态时，才开始播放youyong2开场动画
+            if (currentDeviceState == kDeviceStateListening && 
+                prevDeviceState != kDeviceStateListening && 
+                prevDeviceState != kDeviceStateSpeaking) {
                 isShowingYouyong2Intro = true;
                 hasFinishedYouyong2Intro = false;
                 isShowingYouyong3 = false;
                 isShowingYouyong2Outro = false;
                 youyong2IntroIndex = 0;
-                ESP_LOGI(TAG, "开始播放youyong2开场动画（从非听状态进入听状态）");
+                ESP_LOGI(TAG, "开始播放youyong2开场动画（从非对话状态进入听状态）");
             }
             
-            // 当设备状态从"说"状态变为非"说"状态时，开始播放youyong2结束动画
-            if (prevDeviceState == kDeviceStateSpeaking && currentDeviceState != kDeviceStateSpeaking) {
+            // 当从"说"状态变为"听"状态时，继续播放youyong3
+            if (prevDeviceState == kDeviceStateSpeaking && currentDeviceState == kDeviceStateListening) {
+                isShowingYouyong2Intro = false;
+                hasFinishedYouyong2Intro = true;
+                isShowingYouyong3 = true;
+                isShowingYouyong2Outro = false;
+                ESP_LOGI(TAG, "从说变成听，继续播放youyong3");
+            }
+            
+            // 当设备状态从"说"或"听"状态变为非"听"非"说"状态时，开始播放youyong2结束动画
+            if ((prevDeviceState == kDeviceStateSpeaking || prevDeviceState == kDeviceStateListening) && 
+                currentDeviceState != kDeviceStateSpeaking && 
+                currentDeviceState != kDeviceStateListening) {
                 isShowingYouyong2Intro = false;
                 hasFinishedYouyong2Intro = true;
                 isShowingYouyong3 = false;
                 isShowingYouyong2Outro = true;
                 youyong2OutroIndex = youyong2ImageCount - 1; // 从最后一张开始倒序播放
-                ESP_LOGI(TAG, "开始播放youyong2结束动画（从说状态退出）");
+                ESP_LOGI(TAG, "开始播放youyong2结束动画（从说或听状态退出到非听非说状态）");
             }
             
             TickType_t currentTime = xTaskGetTickCount();
