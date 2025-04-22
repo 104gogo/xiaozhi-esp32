@@ -15,11 +15,27 @@
 #include <wifi_station.h>
 #include "esp_camera.h" 
 
+// youyong2文件夹中的图片
+#include "images/youyong2/gImage_youyong2_0001.h"
+#include "images/youyong2/gImage_youyong2_0002.h"
+#include "images/youyong2/gImage_youyong2_0003.h"
+#include "images/youyong2/gImage_youyong2_0004.h"
+#include "images/youyong2/gImage_youyong2_0005.h"
+#include "images/youyong2/gImage_youyong2_0006.h"
+#include "images/youyong2/gImage_youyong2_0007.h"
+#include "images/youyong2/gImage_youyong2_0008.h"
+#include "images/youyong2/gImage_youyong2_0009.h"
+#include "images/youyong2/gImage_youyong2_0010.h"
+#include "images/youyong2/gImage_youyong2_0011.h"
+#include "images/youyong2/gImage_youyong2_0012.h"
 
-
-
-#include "images/luoli/gImage_woshi1.h"
-#include "images/luoli/gImage_woshi3.h"
+// youyong3文件夹中的图片
+#include "images/youyong3/gImage_youyong3_0001.h"
+#include "images/youyong3/gImage_youyong3_0002.h"
+#include "images/youyong3/gImage_youyong3_0003.h"
+#include "images/youyong3/gImage_youyong3_0004.h"
+#include "images/youyong3/gImage_youyong3_0005.h"
+#include "images/youyong3/gImage_youyong3_0006.h"
 
 #define TAG "LichuangDevBoard"
 
@@ -208,10 +224,8 @@ private:
             return;
         }
         
-        // 获取AudioProcessor实例的事件组 - 从application.h中直接获取
+        // 获取Application实例
         auto& app = Application::GetInstance();
-        // 这里使用Application中可用的方法来判断音频状态
-        // 根据编译错误修改为可用的方法
         
         // 创建画布（如果不存在）
         if (!display->HasCanvas()) {
@@ -224,16 +238,33 @@ private:
         int x = 0;
         int y = 0;
         
-        // 设置图片数组
-        const uint8_t* imageArray[] = {
-            gImage_woshi1,
-            gImage_woshi3
+        // 设置youyong2图片数组 - 用于开始和结束
+        const uint8_t* youyong2ImageArray[] = {
+            gImage_youyong2_0001,
+            gImage_youyong2_0002,
+            gImage_youyong2_0003,
+            gImage_youyong2_0004,
+            gImage_youyong2_0005,
+            gImage_youyong2_0006,
+            gImage_youyong2_0007,
+            gImage_youyong2_0008,
+            gImage_youyong2_0009,
+            gImage_youyong2_0010,
+            gImage_youyong2_0011,
+            gImage_youyong2_0012,
         };
-        const char* imageNames[] = {
-            "图片1",
-            "图片2"
+        const int youyong2ImageCount = sizeof(youyong2ImageArray) / sizeof(youyong2ImageArray[0]);
+        
+        // 设置youyong3图片数组 - 用于中间过程
+        const uint8_t* youyong3ImageArray[] = {
+            gImage_youyong3_0001,
+            gImage_youyong3_0002,
+            gImage_youyong3_0003,
+            gImage_youyong3_0004,
+            gImage_youyong3_0005,
+            gImage_youyong3_0006,
         };
-        const int totalImages = 2;
+        const int youyong3ImageCount = sizeof(youyong3ImageArray) / sizeof(youyong3ImageArray[0]);
         
         // 创建临时缓冲区用于字节序转换
         uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
@@ -243,10 +274,8 @@ private:
             return;
         }
         
-        // 先显示第一张图片
-        int currentIndex = 0;
-        const uint8_t* currentImage = imageArray[currentIndex];
-        const char* currentName = imageNames[currentIndex];
+        // 先显示youyong2的第一张图片
+        const uint8_t* currentImage = youyong2ImageArray[0];
         
         // 转换并显示第一张图片
         for (int i = 0; i < imgWidth * imgHeight; i++) {
@@ -254,58 +283,136 @@ private:
             convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
         }
         display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-        ESP_LOGI(TAG, "初始显示图片: %s", currentName);
+        ESP_LOGI(TAG, "初始显示youyong2第一张图片");
         
         // 持续监控和处理图片显示
         TickType_t lastUpdateTime = xTaskGetTickCount();
-        const TickType_t cycleInterval = pdMS_TO_TICKS(300); // 图片切换间隔300毫秒
+        const TickType_t cycleInterval = pdMS_TO_TICKS(50); // 图片切换间隔50毫秒
         
-        // 定义用于判断是否正在播放音频的变量
-        bool isAudioPlaying = false;
-        bool wasAudioPlaying = false;
+        // 定义用于判断设备状态的变量
+        DeviceState prevDeviceState = kDeviceStateIdle;
+        DeviceState currentDeviceState = kDeviceStateIdle;
+        
+        // 初始化状态变量
+        bool isShowingYouyong2Intro = false;  // 是否正在显示youyong2开场动画
+        bool hasFinishedYouyong2Intro = false; // 是否已完成youyong2开场动画
+        bool isShowingYouyong3 = false;       // 是否正在显示youyong3
+        bool isShowingYouyong2Outro = false;  // 是否正在显示youyong2结束动画
+        
+        // 当前播放的图片索引
+        int youyong2IntroIndex = 0;  // youyong2开场动画索引
+        int youyong3Index = 0;       // youyong3索引
+        int youyong2OutroIndex = 0;  // youyong2结束动画索引
         
         while (true) {
-            // 检查是否正在播放音频 - 使用应用程序状态判断
-            isAudioPlaying = (app.GetDeviceState() == kDeviceStateSpeaking);
+            // 获取当前设备状态
+            prevDeviceState = currentDeviceState;
+            currentDeviceState = app.GetDeviceState();
+            
+            // 当设备状态从非"听"状态变为"听"状态时，开始播放youyong2开场动画
+            if (currentDeviceState == kDeviceStateListening && prevDeviceState != kDeviceStateListening) {
+                isShowingYouyong2Intro = true;
+                hasFinishedYouyong2Intro = false;
+                isShowingYouyong3 = false;
+                isShowingYouyong2Outro = false;
+                youyong2IntroIndex = 0;
+                ESP_LOGI(TAG, "开始播放youyong2开场动画（从非听状态进入听状态）");
+            }
+            
+            // 当设备状态从"说"状态变为非"说"状态时，开始播放youyong2结束动画
+            if (prevDeviceState == kDeviceStateSpeaking && currentDeviceState != kDeviceStateSpeaking) {
+                isShowingYouyong2Intro = false;
+                hasFinishedYouyong2Intro = true;
+                isShowingYouyong3 = false;
+                isShowingYouyong2Outro = true;
+                youyong2OutroIndex = youyong2ImageCount - 1; // 从最后一张开始倒序播放
+                ESP_LOGI(TAG, "开始播放youyong2结束动画（从说状态退出）");
+            }
             
             TickType_t currentTime = xTaskGetTickCount();
             
-            // 如果正在播放音频且时间到了切换间隔
-            if (isAudioPlaying && (currentTime - lastUpdateTime >= cycleInterval)) {
-                // 更新索引到下一张图片
-                currentIndex = (currentIndex + 1) % totalImages;
-                currentImage = imageArray[currentIndex];
-                currentName = imageNames[currentIndex];
-                
-                // 转换并显示新图片
-                for (int i = 0; i < imgWidth * imgHeight; i++) {
-                    uint16_t pixel = ((uint16_t*)currentImage)[i];
-                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
-                }
-                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-                ESP_LOGI(TAG, "循环显示图片: %s (音频播放中)", currentName);
-                
+            // 如果时间到了切换间隔
+            if (currentTime - lastUpdateTime >= cycleInterval) {
                 // 更新上次更新时间
                 lastUpdateTime = currentTime;
-            }
-            // 如果不在播放音频但上一次检查时在播放，或者当前不在第一张图片
-            else if ((!isAudioPlaying && wasAudioPlaying) || (!isAudioPlaying && currentIndex != 0)) {
-                // 切换回第一张图片
-                currentIndex = 0;
-                currentImage = imageArray[currentIndex];
-                currentName = imageNames[currentIndex];
                 
-                // 转换并显示第一张图片
-                for (int i = 0; i < imgWidth * imgHeight; i++) {
-                    uint16_t pixel = ((uint16_t*)currentImage)[i];
-                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                // 根据当前状态进行图片切换
+                if (isShowingYouyong2Intro) {
+                    // 播放youyong2开场动画
+                    currentImage = youyong2ImageArray[youyong2IntroIndex];
+                    
+                    // 转换并显示图片
+                    for (int i = 0; i < imgWidth * imgHeight; i++) {
+                        uint16_t pixel = ((uint16_t*)currentImage)[i];
+                        convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                    }
+                    display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                    ESP_LOGI(TAG, "显示youyong2开场图片 %d", youyong2IntroIndex);
+                    
+                    // 更新索引
+                    youyong2IntroIndex++;
+                    if (youyong2IntroIndex >= youyong2ImageCount) {
+                        // 如果已经播放完youyong2的所有图片，切换到youyong3
+                        isShowingYouyong2Intro = false;
+                        hasFinishedYouyong2Intro = true;
+                        isShowingYouyong3 = true;
+                        youyong3Index = 0;
+                        ESP_LOGI(TAG, "youyong2开场动画播放完毕，切换到youyong3");
+                    }
+                } else if (isShowingYouyong3 && (currentDeviceState == kDeviceStateListening || currentDeviceState == kDeviceStateSpeaking)) {
+                    // 当设备在聆听或说话状态时，播放youyong3
+                    currentImage = youyong3ImageArray[youyong3Index];
+                    
+                    // 转换并显示图片
+                    for (int i = 0; i < imgWidth * imgHeight; i++) {
+                        uint16_t pixel = ((uint16_t*)currentImage)[i];
+                        convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                    }
+                    display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                    ESP_LOGI(TAG, "显示youyong3图片 %d（状态：%d）", youyong3Index, currentDeviceState);
+                    
+                    // 更新索引，循环播放youyong3
+                    youyong3Index = (youyong3Index + 1) % youyong3ImageCount;
+                    
+                    // 延长帧间隔，减少内存占用
+                    lastUpdateTime += pdMS_TO_TICKS(50);
+                } else if (isShowingYouyong2Outro) {
+                    // 播放youyong2结束动画
+                    currentImage = youyong2ImageArray[youyong2OutroIndex];
+                    
+                    // 转换并显示图片
+                    for (int i = 0; i < imgWidth * imgHeight; i++) {
+                        uint16_t pixel = ((uint16_t*)currentImage)[i];
+                        convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                    }
+                    display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                    ESP_LOGI(TAG, "显示youyong2结束图片 %d", youyong2OutroIndex);
+                    
+                    // 更新索引，倒序播放
+                    youyong2OutroIndex--;
+                    if (youyong2OutroIndex < 0) {
+                        // 如果已经播放完youyong2的所有图片，恢复到初始状态
+                        isShowingYouyong2Outro = false;
+                        
+                        // 显示第一张图片作为默认状态
+                        currentImage = youyong2ImageArray[0];
+                        for (int i = 0; i < imgWidth * imgHeight; i++) {
+                            uint16_t pixel = ((uint16_t*)currentImage)[i];
+                            convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                        }
+                        display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                        ESP_LOGI(TAG, "youyong2结束动画播放完毕，恢复到初始状态");
+                    }
+                } else if (!isShowingYouyong2Intro && !isShowingYouyong3 && !isShowingYouyong2Outro) {
+                    // 显示youyong2的第一张图片作为默认状态
+                    currentImage = youyong2ImageArray[0];
+                    for (int i = 0; i < imgWidth * imgHeight; i++) {
+                        uint16_t pixel = ((uint16_t*)currentImage)[i];
+                        convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                    }
+                    display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
                 }
-                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-                ESP_LOGI(TAG, "返回显示初始图片: %s (音频播放停止)", currentName);
             }
-            
-            // 更新上一次音频播放状态
-            wasAudioPlaying = isAudioPlaying;
             
             // 短暂延时，避免CPU占用过高
             vTaskDelay(pdMS_TO_TICKS(100));
