@@ -221,8 +221,8 @@ private:
         // 设置图片显示参数
         int imgWidth = 320;
         int imgHeight = 240;
-        int x = (display->width() - imgWidth) / 2;
-        int y = (display->height() - imgHeight) / 2;
+        int x = 30;
+        int y = 0;
         
         // 设置图片数组
         const uint8_t* imageArray[] = {
@@ -258,7 +258,7 @@ private:
         
         // 持续监控和处理图片显示
         TickType_t lastUpdateTime = xTaskGetTickCount();
-        const TickType_t cycleInterval = pdMS_TO_TICKS(1000); // 图片切换间隔1秒
+        const TickType_t cycleInterval = pdMS_TO_TICKS(300); // 图片切换间隔300毫秒
         
         // 定义用于判断是否正在播放音频的变量
         bool isAudioPlaying = false;
