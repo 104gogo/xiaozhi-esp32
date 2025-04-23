@@ -18,23 +18,16 @@
 
 
 
-#include "images/keke/gImage_keke_0001.h"
-#include "images/keke/gImage_keke_0002.h"
-#include "images/keke/gImage_keke_0003.h"
-#include "images/keke/gImage_keke_0004.h"
-#include "images/keke/gImage_keke_0005.h"
-#include "images/keke/gImage_keke_0006.h"
-#include "images/keke/gImage_keke_0007.h"
-#include "images/keke/gImage_keke_0008.h"
-#include "images/keke/gImage_keke_0009.h"
-#include "images/keke/gImage_keke_0010.h"
-#include "images/keke/gImage_keke_0011.h"
-#include "images/keke/gImage_keke_0012.h"
-#include "images/keke/gImage_keke_0013.h"
-#include "images/keke/gImage_keke_0014.h"
-#include "images/keke/gImage_keke_0015.h"
-#include "images/keke/gImage_keke_0016.h"
-#include "images/keke/gImage_keke_0017.h"
+#include "images/doufu/output_0001.h"
+#include "images/doufu/output_0002.h"
+#include "images/doufu/output_0003.h"
+#include "images/doufu/output_0004.h"
+#include "images/doufu/output_0005.h"
+#include "images/doufu/output_0006.h"
+#include "images/doufu/output_0007.h"
+#include "images/doufu/output_0008.h"
+#include "images/doufu/output_0009.h"
+#include "images/doufu/output_0010.h"
 
 #define TAG "LichuangDevBoard"
 
@@ -241,39 +234,25 @@ private:
         
         // 设置图片数组
         const uint8_t* imageArray[] = {
-            gImage_keke_0001,
-            gImage_keke_0002,
-            gImage_keke_0003,
-            gImage_keke_0004,
-            gImage_keke_0005,
-            gImage_keke_0006,
-            gImage_keke_0007,
-            gImage_keke_0008,
-            gImage_keke_0009,
-            gImage_keke_0010,
-            gImage_keke_0011,
-            gImage_keke_0012,
-            gImage_keke_0013,
-            gImage_keke_0014,
-            gImage_keke_0015,
-            gImage_keke_0016,
-            gImage_keke_0017,
-            gImage_keke_0016,
-            gImage_keke_0015,
-            gImage_keke_0014,
-            gImage_keke_0013,
-            gImage_keke_0012,
-            gImage_keke_0011,
-            gImage_keke_0010,
-            gImage_keke_0009,
-            gImage_keke_0008,
-            gImage_keke_0007,
-            gImage_keke_0006,
-            gImage_keke_0005,
-            gImage_keke_0004,
-            gImage_keke_0003,
-            gImage_keke_0002,
-            gImage_keke_0001
+            gImage_output_0001,
+            gImage_output_0002,
+            gImage_output_0003,
+            gImage_output_0004,
+            gImage_output_0005,
+            gImage_output_0006,
+            gImage_output_0007,
+            gImage_output_0008,
+            gImage_output_0009,
+            gImage_output_0010,
+            gImage_output_0009,
+            gImage_output_0008,
+            gImage_output_0007,
+            gImage_output_0006,
+            gImage_output_0005,
+            gImage_output_0004,
+            gImage_output_0003,
+            gImage_output_0002,
+            gImage_output_0001
         };
         const int totalImages = sizeof(imageArray) / sizeof(imageArray[0]);
         
