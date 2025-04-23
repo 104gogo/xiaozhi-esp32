@@ -298,8 +298,8 @@ void Display::CreateCanvas() {
     lv_canvas_set_buffer(canvas_, canvas_buffer_, width_, height_, LV_COLOR_FORMAT_RGB565);
     
     // 设置画布位置为全屏
-    lv_obj_set_pos(canvas_, 0, 0);
-    lv_obj_set_size(canvas_, width_, height_);
+    lv_obj_set_pos(canvas_, 0, 25);
+    lv_obj_set_size(canvas_, width_, height_ - 25);
     
     // 设置画布为透明
     lv_canvas_fill_bg(canvas_, lv_color_make(0, 0, 0), LV_OPA_TRANSP);
