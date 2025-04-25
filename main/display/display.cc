@@ -335,12 +335,6 @@ void Display::DrawImageOnCanvas(int x, int y, int width, int height, const uint8
         return;
     }
     
-    // 检查参数是否有效
-    if (x < 0 || y < 0 || (x + width) > width_ || (y + height) > height_) {
-        ESP_LOGE("Display", "Invalid coordinates: x=%d, y=%d, w=%d, h=%d, screen: %dx%d", 
-                x, y, width, height, width_, height_);
-        return;
-    }
     
     // 创建一个描述器来映射图像数据
     const lv_image_dsc_t img_dsc = {
