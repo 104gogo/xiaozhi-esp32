@@ -292,11 +292,12 @@ void LcdDisplayNew::SetupUI() {
     // 创建画布并显示图片
     CreateCanvas();
     
-    /* 顶部状态栏（透明覆盖） */
+    /* 顶部状态栏（半透明覆盖） */
     status_bar_ = lv_obj_create(screen);
     lv_obj_set_size(status_bar_, LV_HOR_RES, 30);
     lv_obj_set_style_radius(status_bar_, 0, 0);
-    lv_obj_set_style_bg_opa(status_bar_, LV_OPA_TRANSP, 0); // 设置为透明
+    lv_obj_set_style_bg_color(status_bar_, lv_color_hex(0x000000), 0); // 黑色背景
+    lv_obj_set_style_bg_opa(status_bar_, LV_OPA_30, 0); // 设置为半透明（30%不透明度）
     lv_obj_set_style_border_width(status_bar_, 0, 0);
     lv_obj_set_style_text_color(status_bar_, current_theme.text, 0);
     lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
@@ -308,18 +309,25 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_scrollbar_mode(status_bar_, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_flex_align(status_bar_, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     
-    /* 底部文字区域（透明覆盖） */
+    /* 底部文字区域（半透明覆盖） */
     side_bar_ = lv_obj_create(screen);
     lv_obj_set_size(side_bar_, LV_HOR_RES, 40);
     lv_obj_align(side_bar_, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_radius(side_bar_, 0, 0);
-    lv_obj_set_style_bg_opa(side_bar_, LV_OPA_TRANSP, 0); // 设置为透明
+    lv_obj_set_style_bg_color(side_bar_, lv_color_hex(0x000000), 0); // 黑色背景
+    lv_obj_set_style_bg_opa(side_bar_, LV_OPA_30, 0); // 设置为半透明（30%不透明度）
     lv_obj_set_style_border_width(side_bar_, 0, 0);
     lv_obj_set_style_text_color(side_bar_, current_theme.text, 0);
     lv_obj_set_style_pad_all(side_bar_, 5, 0);
     lv_obj_set_scrollbar_mode(side_bar_, LV_SCROLLBAR_MODE_OFF);
 
     /* 状态栏内容 */
+    // 网络状态图标（放在最左侧）
+    network_label_ = lv_label_create(status_bar_);
+    lv_label_set_text(network_label_, "");
+    lv_obj_set_style_text_font(network_label_, fonts_.icon_font, 0);
+    lv_obj_set_style_text_color(network_label_, current_theme.text, 0);
+    
     // 中间状态文本
     status_label_ = lv_label_create(status_bar_);
     lv_obj_set_flex_grow(status_label_, 1);
@@ -333,11 +341,6 @@ void LcdDisplayNew::SetupUI() {
     lv_label_set_text(mute_label_, "");
     lv_obj_set_style_text_font(mute_label_, fonts_.icon_font, 0);
     lv_obj_set_style_text_color(mute_label_, current_theme.text, 0);
-
-    network_label_ = lv_label_create(status_bar_);
-    lv_label_set_text(network_label_, "");
-    lv_obj_set_style_text_font(network_label_, fonts_.icon_font, 0);
-    lv_obj_set_style_text_color(network_label_, current_theme.text, 0);
 
     battery_label_ = lv_label_create(status_bar_);
     lv_label_set_text(battery_label_, "");
