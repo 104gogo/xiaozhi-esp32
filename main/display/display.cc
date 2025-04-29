@@ -298,14 +298,14 @@ void Display::CreateCanvas() {
     lv_canvas_set_buffer(canvas_, canvas_buffer_, width_, height_, LV_COLOR_FORMAT_RGB565);
     
     // 设置画布位置为全屏
-    lv_obj_set_pos(canvas_, 0, 25);
-    lv_obj_set_size(canvas_, width_, height_ - 25);
+    lv_obj_set_pos(canvas_, 0, 0);
+    lv_obj_set_size(canvas_, width_, height_);
     
     // 设置画布为透明
     lv_canvas_fill_bg(canvas_, lv_color_make(0, 0, 0), LV_OPA_TRANSP);
     
     // 设置画布为顶层
-    lv_obj_move_foreground(canvas_);
+    // lv_obj_move_foreground(canvas_);
     
     ESP_LOGI("Display", "Canvas created successfully");
 }
@@ -370,7 +370,7 @@ void Display::DrawImageOnCanvas(int x, int y, int width, int height, const uint8
     lv_canvas_finish_layer(canvas_, &layer);
     
     // 确保画布在最上层
-    lv_obj_move_foreground(canvas_);
+    // lv_obj_move_foreground(canvas_);
     
     ESP_LOGI("Display", "Image drawn on canvas at x=%d, y=%d, w=%d, h=%d", x, y, width, height);
 }

@@ -8,8 +8,8 @@
 #include "assets/lang_config.h"
 #include <cstring>
 #include "settings.h"
-
 #include "board.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0001.h"
 
 #define TAG "LcdDisplayNew"
 
@@ -288,6 +288,33 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_scroll_dir(content_, LV_DIR_VER);
     lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(content_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    
+    // 创建画布并显示图片
+    CreateCanvas();
+    
+    // 确保有画布后显示图片
+    if (HasCanvas()) {
+        // gImage_output_0001是原始的字节数组
+        const uint16_t* pixel_data = (const uint16_t*)gImage_output_0001;
+        
+        // 图片尺寸 - 需要根据实际情况修改
+        int img_width = 240;
+        int img_height = 240;
+        
+        // 计算图像在屏幕中心的位置
+        int x = (width_ - img_width) / 2;
+        int y = (height_ - img_height) / 2;
+        
+        // 转换字节序
+        std::vector<uint16_t> converted_data(img_width * img_height);
+        for (int i = 0; i < img_width * img_height; i++) {
+            // RGB565格式需要交换字节序
+            converted_data[i] = ((pixel_data[i] & 0xFF) << 8) | ((pixel_data[i] & 0xFF00) >> 8);
+        }
+        
+        // 显示图像
+        DrawImageOnCanvas(x, y, img_width, img_height, (const uint8_t*)converted_data.data());
+    }
     
     /* 顶部状态栏（透明覆盖） */
     status_bar_ = lv_obj_create(screen);
