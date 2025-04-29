@@ -332,7 +332,7 @@ public:
         GetBacklight()->RestoreBrightness();
 
         // 启动图片循环显示任务
-        StartImageSlideshow();
+        // StartImageSlideshow();
     }
 
     virtual AudioCodec* GetAudioCodec() override {
