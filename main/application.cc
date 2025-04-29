@@ -556,8 +556,6 @@ void Application::Start() {
     // Wait for the new version check to finish
     xEventGroupWaitBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
     SetDeviceState(kDeviceStateIdle);
-    std::string message = std::string(Lang::Strings::VERSION) + ota_.GetCurrentVersion();
-    display->ShowNotification(message.c_str());
     display->SetChatMessage("system", "");
     // Play the success sound to indicate the device is ready
     ResetDecoder();
