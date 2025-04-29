@@ -277,15 +277,26 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_style_bg_color(container_, current_theme.background, 0);
     lv_obj_set_style_border_color(container_, current_theme.border, 0);
 
-    /* 顶部状态栏 */
-    status_bar_ = lv_obj_create(container_);
-    lv_obj_set_size(status_bar_, LV_HOR_RES, 30); // 固定高度的状态栏
+    /* 中间内容区域（占满全屏） */
+    content_ = lv_obj_create(container_);
+    lv_obj_set_style_radius(content_, 0, 0);
+    lv_obj_set_size(content_, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_style_pad_all(content_, 0, 0);
+    lv_obj_set_style_bg_color(content_, current_theme.chat_background, 0);
+    lv_obj_set_style_border_width(content_, 0, 0);
+    lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_scroll_dir(content_, LV_DIR_VER);
+    lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(content_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    
+    /* 顶部状态栏（透明覆盖） */
+    status_bar_ = lv_obj_create(screen);
+    lv_obj_set_size(status_bar_, LV_HOR_RES, 30);
     lv_obj_set_style_radius(status_bar_, 0, 0);
-    lv_obj_set_style_bg_color(status_bar_, current_theme.background, 0);
+    lv_obj_set_style_bg_opa(status_bar_, LV_OPA_TRANSP, 0); // 设置为透明
+    lv_obj_set_style_border_width(status_bar_, 0, 0);
     lv_obj_set_style_text_color(status_bar_, current_theme.text, 0);
     lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
-    lv_obj_set_style_pad_all(status_bar_, 0, 0);
-    lv_obj_set_style_border_width(status_bar_, 0, 0);
     lv_obj_set_style_pad_column(status_bar_, 5, 0);
     lv_obj_set_style_pad_left(status_bar_, 10, 0);
     lv_obj_set_style_pad_right(status_bar_, 10, 0);
@@ -293,23 +304,14 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_style_pad_bottom(status_bar_, 5, 0);
     lv_obj_set_scrollbar_mode(status_bar_, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_flex_align(status_bar_, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-
-    /* 中间内容区域 */
-    content_ = lv_obj_create(container_);
-    lv_obj_set_style_radius(content_, 0, 0);
-    lv_obj_set_width(content_, LV_HOR_RES);
-    lv_obj_set_flex_grow(content_, 1); // 占用剩余空间
-    lv_obj_set_style_pad_all(content_, 10, 0);
-    lv_obj_set_style_bg_color(content_, current_theme.chat_background, 0);
-    lv_obj_set_style_border_color(content_, current_theme.border, 0);
-    lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_scroll_dir(content_, LV_DIR_VER);
     
-    /* 底部文字区域 */
-    side_bar_ = lv_obj_create(container_);
-    lv_obj_set_size(side_bar_, LV_HOR_RES, 40); // 固定高度的底部栏
+    /* 底部文字区域（透明覆盖） */
+    side_bar_ = lv_obj_create(screen);
+    lv_obj_set_size(side_bar_, LV_HOR_RES, 40);
+    lv_obj_align(side_bar_, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_radius(side_bar_, 0, 0);
-    lv_obj_set_style_bg_color(side_bar_, current_theme.background, 0);
+    lv_obj_set_style_bg_opa(side_bar_, LV_OPA_TRANSP, 0); // 设置为透明
+    lv_obj_set_style_border_width(side_bar_, 0, 0);
     lv_obj_set_style_text_color(side_bar_, current_theme.text, 0);
     lv_obj_set_style_pad_all(side_bar_, 5, 0);
     lv_obj_set_scrollbar_mode(side_bar_, LV_SCROLLBAR_MODE_OFF);
@@ -338,10 +340,6 @@ void LcdDisplayNew::SetupUI() {
     lv_label_set_text(battery_label_, "");
     lv_obj_set_style_text_font(battery_label_, fonts_.icon_font, 0);
     lv_obj_set_style_text_color(battery_label_, current_theme.text, 0);
-
-    /* 中间内容区域 - 可滚动的内容容器 */
-    lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(content_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     
     /* 底部文字区域 */
     chat_message_label_ = lv_label_create(side_bar_);
@@ -353,10 +351,15 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_center(chat_message_label_);
 
     /* 通知弹窗 */
-    notification_label_ = lv_label_create(status_bar_);
+    notification_label_ = lv_label_create(screen);
     lv_obj_set_style_text_align(notification_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(notification_label_, current_theme.text, 0);
+    lv_obj_set_style_bg_color(notification_label_, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_opa(notification_label_, LV_OPA_50, 0);
+    lv_obj_set_style_radius(notification_label_, 5, 0);
+    lv_obj_set_style_pad_all(notification_label_, 5, 0);
     lv_label_set_text(notification_label_, "");
+    lv_obj_align(notification_label_, LV_ALIGN_TOP_MID, 0, 40);
     lv_obj_add_flag(notification_label_, LV_OBJ_FLAG_HIDDEN);
 
     /* 低电量弹窗 */
