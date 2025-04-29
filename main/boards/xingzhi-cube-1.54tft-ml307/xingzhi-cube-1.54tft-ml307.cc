@@ -17,16 +17,16 @@
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
 
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0001.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0002.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0003.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0004.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0005.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0006.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0007.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0008.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0009.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0010.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0001.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0002.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0003.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0004.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0005.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0006.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0007.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0008.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0009.h"
+#include "images/xingzhi-cube-1.54/panda1/gImage_output_0010.h"
 
 #define TAG "XINGZHI_CUBE_1_54TFT_ML307"
 
