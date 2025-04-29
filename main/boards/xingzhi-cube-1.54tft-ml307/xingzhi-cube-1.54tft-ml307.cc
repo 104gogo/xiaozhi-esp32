@@ -199,10 +199,8 @@ private:
             return;
         }
         
-        // 获取AudioProcessor实例的事件组 - 从application.h中直接获取
+        // 获取Application实例
         auto& app = Application::GetInstance();
-        // 这里使用Application中可用的方法来判断音频状态
-        // 根据编译错误修改为可用的方法
         
         // 创建画布（如果不存在）
         if (!display->HasCanvas()) {
@@ -263,13 +261,29 @@ private:
         TickType_t lastUpdateTime = xTaskGetTickCount();
         const TickType_t cycleInterval = pdMS_TO_TICKS(60); // 图片切换间隔60毫秒
         
-        // 定义用于判断是否正在播放音频的变量
+        // 定义用于判断状态的变量
+        DeviceState lastDeviceState = kDeviceStateUnknown;
         bool isAudioPlaying = false;
         bool wasAudioPlaying = false;
         
         while (true) {
+            // 获取当前设备状态
+            DeviceState currentState = app.GetDeviceState();
+            
             // 检查是否正在播放音频 - 使用应用程序状态判断
-            isAudioPlaying = (app.GetDeviceState() == kDeviceStateSpeaking);
+            isAudioPlaying = (currentState == kDeviceStateSpeaking);
+            
+            // 如果状态发生变化，更新消息文本
+            if (currentState != lastDeviceState) {
+                if (currentState == kDeviceStateListening) {
+                    display->ShowSideBar();
+                } else if (currentState == kDeviceStateSpeaking) {
+                    display->ShowSideBar();
+                } else {
+                    display->HideSideBar();
+                }
+                lastDeviceState = currentState;
+            }
             
             TickType_t currentTime = xTaskGetTickCount();
             

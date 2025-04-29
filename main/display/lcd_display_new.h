@@ -39,6 +39,10 @@ public:
     virtual void SetChatMessage(const char* role, const char* content) override; 
 #endif  
 
+    // 控制底部栏显示和隐藏
+    virtual void ShowSideBar() override;
+    virtual void HideSideBar() override;
+
     // Add theme switching function
     virtual void SetTheme(const std::string& theme_name) override;
 };

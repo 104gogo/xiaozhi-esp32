@@ -320,6 +320,8 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_style_text_color(side_bar_, lv_color_white(), 0);
     lv_obj_set_style_pad_all(side_bar_, 5, 0);
     lv_obj_set_scrollbar_mode(side_bar_, LV_SCROLLBAR_MODE_OFF);
+    // 默认隐藏底部栏
+    lv_obj_add_flag(side_bar_, LV_OBJ_FLAG_HIDDEN);
 
     /* 状态栏内容 */
     // 网络状态图标（放在最左侧）
@@ -388,6 +390,22 @@ void LcdDisplayNew::SetEmotion(const char* emotion) {
 
 void LcdDisplayNew::SetIcon(const char* icon) {
     // 此方法已被弃用，不再显示图标
+}
+
+// 显示底部栏
+void LcdDisplayNew::ShowSideBar() {
+    DisplayLockGuard lock(this);
+    if (side_bar_ != nullptr) {
+        lv_obj_clear_flag(side_bar_, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+// 隐藏底部栏
+void LcdDisplayNew::HideSideBar() {
+    DisplayLockGuard lock(this);
+    if (side_bar_ != nullptr) {
+        lv_obj_add_flag(side_bar_, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 void LcdDisplayNew::SetTheme(const std::string& theme_name) {
