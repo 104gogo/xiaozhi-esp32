@@ -17,6 +17,8 @@
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
 
+#include "display/my_font.h"
+
 #include "images/xingzhi-cube-1.54/panda1/gImage_output_0001.h"
 #include "images/xingzhi-cube-1.54/panda1/gImage_output_0002.h"
 #include "images/xingzhi-cube-1.54/panda1/gImage_output_0003.h"
@@ -165,7 +167,7 @@ private:
         display_ = new SpiLcdDisplayNew(panel_io_, panel_, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, 
             DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY, 
         {
-            .text_font = &font_puhui_20_4,
+            .text_font = &my_font, // 使用你的自定义字体
             .icon_font = &font_awesome_20_4,
 #if CONFIG_USE_WECHAT_MESSAGE_STYLE
             .emoji_font = font_emoji_32_init(),

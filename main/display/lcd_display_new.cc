@@ -336,6 +336,8 @@ void LcdDisplayNew::SetupUI() {
     lv_label_set_long_mode(status_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_style_text_align(status_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(status_label_, lv_color_white(), 0);
+    // 显式设置使用配置的字体
+    lv_obj_set_style_text_font(status_label_, fonts_.text_font, 0);
     lv_label_set_text(status_label_, Lang::Strings::INITIALIZING);
 
     // 右侧状态图标
@@ -355,6 +357,8 @@ void LcdDisplayNew::SetupUI() {
     lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(chat_message_label_, lv_color_white(), 0);
+    // 显式设置使用配置的字体
+    lv_obj_set_style_text_font(chat_message_label_, fonts_.text_font, 0);
     lv_label_set_text(chat_message_label_, "");
     lv_obj_center(chat_message_label_);
 
