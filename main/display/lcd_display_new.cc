@@ -314,8 +314,8 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_size(side_bar_, LV_HOR_RES, 30);
     lv_obj_align(side_bar_, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_radius(side_bar_, 0, 0);
-    lv_obj_set_style_bg_color(side_bar_, lv_color_hex(0x000000), 0);
-    lv_obj_set_style_bg_opa(side_bar_, LV_OPA_30, 0);
+    lv_obj_set_style_bg_color(side_bar_, lv_color_hex(0x888888), 0);
+    lv_obj_set_style_bg_opa(side_bar_, LV_OPA_70, 0);
     lv_obj_set_style_border_width(side_bar_, 0, 0);
     lv_obj_set_style_text_color(side_bar_, lv_color_black(), 0);
     lv_obj_set_style_pad_all(side_bar_, 5, 0);
