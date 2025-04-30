@@ -317,7 +317,7 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_style_bg_color(side_bar_, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(side_bar_, LV_OPA_30, 0);
     lv_obj_set_style_border_width(side_bar_, 0, 0);
-    lv_obj_set_style_text_color(side_bar_, lv_color_white(), 0);
+    lv_obj_set_style_text_color(side_bar_, lv_color_black(), 0);
     lv_obj_set_style_pad_all(side_bar_, 5, 0);
     lv_obj_set_scrollbar_mode(side_bar_, LV_SCROLLBAR_MODE_OFF);
     // 默认隐藏底部栏
@@ -365,7 +365,7 @@ void LcdDisplayNew::SetupUI() {
     /* 通知弹窗 */
     notification_label_ = lv_label_create(screen);
     lv_obj_set_style_text_align(notification_label_, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_color(notification_label_, current_theme.text, 0);
+    lv_obj_set_style_text_color(notification_label_, lv_color_white(), 0);
     lv_obj_set_style_bg_color(notification_label_, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(notification_label_, LV_OPA_50, 0);
     lv_obj_set_style_radius(notification_label_, 5, 0);

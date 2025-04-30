@@ -19,6 +19,16 @@
 
 #include "display/my_font.h"
 
+#include "images/xingzhi-cube-1.54/xinyi/gImage_1.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_2.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_3.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_4.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_5.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_6.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_7.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_8.h"
+#include "images/xingzhi-cube-1.54/xinyi/gImage_9.h"
+
 #include "images/xingzhi-cube-1.54/panda1/gImage_output_0001.h"
 #include "images/xingzhi-cube-1.54/panda1/gImage_output_0002.h"
 #include "images/xingzhi-cube-1.54/panda1/gImage_output_0003.h"
@@ -217,25 +227,23 @@ private:
         
         // 设置图片数组
         const uint8_t* imageArray[] = {
-            gImage_output_0001,
-            gImage_output_0002,
-            gImage_output_0003,
-            gImage_output_0004,
-            gImage_output_0005,
-            gImage_output_0006,
-            gImage_output_0007,
-            gImage_output_0008,
-            gImage_output_0009,
-            gImage_output_0010,
-            gImage_output_0009,
-            gImage_output_0008,
-            gImage_output_0007,
-            gImage_output_0006,
-            gImage_output_0005,
-            gImage_output_0004,
-            gImage_output_0003,
-            gImage_output_0002,
-            gImage_output_0001
+            gImage_1,
+            gImage_2,
+            gImage_3,
+            gImage_4,
+            gImage_5,
+            gImage_6,
+            gImage_7,
+            gImage_8,
+            gImage_9,
+            gImage_8,
+            gImage_7,
+            gImage_6,
+            gImage_5,
+            gImage_4,
+            gImage_3,
+            gImage_2,
+            gImage_1
         };
         const int totalImages = sizeof(imageArray) / sizeof(imageArray[0]);
         
