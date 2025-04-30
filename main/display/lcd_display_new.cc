@@ -355,12 +355,12 @@ void LcdDisplayNew::SetupUI() {
     chat_message_label_ = lv_label_create(side_bar_);
     lv_obj_set_width(chat_message_label_, LV_HOR_RES - 20);
     lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_color(chat_message_label_, lv_color_white(), 0);
+    lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_set_style_text_color(chat_message_label_, lv_color_black(), 0);
     // 显式设置使用配置的字体
     lv_obj_set_style_text_font(chat_message_label_, fonts_.text_font, 0);
     lv_label_set_text(chat_message_label_, "");
-    lv_obj_center(chat_message_label_);
+    lv_obj_align(chat_message_label_, LV_ALIGN_RIGHT_MID, -10, 0);
 
     /* 通知弹窗 */
     notification_label_ = lv_label_create(screen);
