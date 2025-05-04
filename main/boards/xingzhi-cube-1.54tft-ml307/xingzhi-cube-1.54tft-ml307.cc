@@ -57,6 +57,30 @@ private:
     esp_lcd_panel_io_handle_t panel_io_ = nullptr;
     esp_lcd_panel_handle_t panel_ = nullptr;
     TaskHandle_t image_task_handle_ = nullptr; // 图片显示任务句柄
+    bool task_should_exit_ = false; // 控制任务是否应该退出的标志
+    
+    // 定义图片数组
+    static constexpr int kXinyiImagesCount = 17;
+    static constexpr int kPandaImagesCount = 10;
+    
+    const uint8_t* xinyi_images_[kXinyiImagesCount] = {
+        gImage_1, gImage_2, gImage_3, gImage_4, gImage_5, 
+        gImage_6, gImage_7, gImage_8, gImage_9, gImage_8, 
+        gImage_7, gImage_6, gImage_5, gImage_4, gImage_3, 
+        gImage_2, gImage_1
+    };
+    
+    const uint8_t* panda_images_[kPandaImagesCount] = {
+        gImage_output_0001, gImage_output_0002, gImage_output_0003, 
+        gImage_output_0004, gImage_output_0005, gImage_output_0006, 
+        gImage_output_0007, gImage_output_0008, gImage_output_0009, 
+        gImage_output_0010
+    };
+    
+    // 当前使用的图片数组及其大小
+    const uint8_t** current_image_array_ = xinyi_images_;
+    int current_array_size_ = kXinyiImagesCount;
+    int current_image_set_ = 0; // 0表示xinyi，1表示panda
 
     void InitializePowerManager() {
         power_manager_ = new PowerManager(GPIO_NUM_38);
@@ -122,6 +146,9 @@ private:
             if (volume > 100) {
                 volume = 100;
             }
+
+            SwitchImageSet();
+
             codec->SetOutputVolume(volume);
             GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume));
         });
@@ -196,8 +223,58 @@ private:
 
     // 启动图片循环显示任务
     void StartImageSlideshow() {
+        // 确保之前的任务已经停止
+        StopImageSlideshow();
+        
+        // 重置退出标志
+        task_should_exit_ = false;
+        
+        // 创建新任务
         xTaskCreate(ImageSlideshowTask, "img_slideshow", 4096, this, 3, &image_task_handle_);
         ESP_LOGI(TAG, "图片循环显示任务已启动");
+    }
+    
+    // 停止图片循环显示任务
+    void StopImageSlideshow() {
+        if (image_task_handle_ != nullptr) {
+            // 设置退出标志
+            task_should_exit_ = true;
+            
+            // 等待任务退出
+            vTaskDelay(pdMS_TO_TICKS(200));
+            
+            // 确保任务已经被删除
+            if (eTaskGetState(image_task_handle_) != eDeleted) {
+                vTaskDelete(image_task_handle_);
+            }
+            
+            image_task_handle_ = nullptr;
+            ESP_LOGI(TAG, "图片循环显示任务已停止");
+        }
+    }
+    
+    // 切换图片集
+    void SwitchImageSet() {
+        // 停止当前正在运行的任务
+        StopImageSlideshow();
+        
+        // 切换图片集
+        current_image_set_ = (current_image_set_ + 1) % 2;
+        
+        if (current_image_set_ == 0) {
+            current_image_array_ = xinyi_images_;
+            current_array_size_ = kXinyiImagesCount;
+            ESP_LOGI(TAG, "切换到新衣图片集");
+            GetDisplay()->ShowNotification("切换到新衣图片集");
+        } else {
+            current_image_array_ = panda_images_;
+            current_array_size_ = kPandaImagesCount;
+            ESP_LOGI(TAG, "切换到熊猫图片集");
+            GetDisplay()->ShowNotification("切换到熊猫图片集");
+        }
+        
+        // 重新启动任务
+        StartImageSlideshow();
     }
     
     // 图片循环显示任务函数
@@ -225,27 +302,9 @@ private:
         int x = 0;
         int y = 0;
         
-        // 设置图片数组
-        const uint8_t* imageArray[] = {
-            gImage_1,
-            gImage_2,
-            gImage_3,
-            gImage_4,
-            gImage_5,
-            gImage_6,
-            gImage_7,
-            gImage_8,
-            gImage_9,
-            gImage_8,
-            gImage_7,
-            gImage_6,
-            gImage_5,
-            gImage_4,
-            gImage_3,
-            gImage_2,
-            gImage_1
-        };
-        const int totalImages = sizeof(imageArray) / sizeof(imageArray[0]);
+        // 获取当前图片数组
+        const uint8_t** imageArray = board->current_image_array_;
+        int totalImages = board->current_array_size_;
         
         // 创建临时缓冲区用于字节序转换
         uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
@@ -276,7 +335,7 @@ private:
         bool isAudioPlaying = false;
         bool wasAudioPlaying = false;
         
-        while (true) {
+        while (!board->task_should_exit_) {
             // 获取当前设备状态
             DeviceState currentState = app.GetDeviceState();
             
@@ -336,7 +395,7 @@ private:
             vTaskDelay(pdMS_TO_TICKS(100));
         }
         
-        // 释放资源（实际上不会执行到这里，除非任务被外部终止）
+        // 释放资源
         delete[] convertedData;
         vTaskDelete(NULL);
     }
@@ -357,6 +416,11 @@ public:
 
         // 启动图片循环显示任务
         StartImageSlideshow();
+    }
+    
+    ~XINGZHI_CUBE_1_54TFT_ML307() {
+        // 确保在析构时停止任务
+        StopImageSlideshow();
     }
 
     virtual AudioCodec* GetAudioCodec() override {
