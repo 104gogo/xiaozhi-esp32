@@ -58,6 +58,7 @@ private:
     esp_lcd_panel_handle_t panel_ = nullptr;
     TaskHandle_t image_task_handle_ = nullptr; // 图片显示任务句柄
     bool task_should_exit_ = false; // 控制任务是否应该退出的标志
+    bool image_set_changed_ = false; // 标记图片集是否已经更改
     
     // 定义图片数组
     static constexpr int kXinyiImagesCount = 17;
@@ -255,26 +256,22 @@ private:
     
     // 切换图片集
     void SwitchImageSet() {
-        // 停止当前正在运行的任务
-        StopImageSlideshow();
-        
-        // 切换图片集
+        // 直接切换图片集，不停止和重启任务
+        // 这样可以避免不必要的任务重启，防止触发服务器重连
         current_image_set_ = (current_image_set_ + 1) % 2;
         
         if (current_image_set_ == 0) {
             current_image_array_ = xinyi_images_;
             current_array_size_ = kXinyiImagesCount;
             ESP_LOGI(TAG, "切换到新衣图片集");
-            GetDisplay()->ShowNotification("切换到新衣图片集");
         } else {
             current_image_array_ = panda_images_;
             current_array_size_ = kPandaImagesCount;
             ESP_LOGI(TAG, "切换到熊猫图片集");
-            GetDisplay()->ShowNotification("切换到熊猫图片集");
         }
         
-        // 重新启动任务
-        StartImageSlideshow();
+        // 设置图片集已更改标志
+        image_set_changed_ = true;
     }
     
     // 图片循环显示任务函数
@@ -302,10 +299,6 @@ private:
         int x = 0;
         int y = 0;
         
-        // 获取当前图片数组
-        const uint8_t** imageArray = board->current_image_array_;
-        int totalImages = board->current_array_size_;
-        
         // 创建临时缓冲区用于字节序转换
         uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
         if (!convertedData) {
@@ -316,6 +309,8 @@ private:
         
         // 先显示第一张图片
         int currentIndex = 0;
+        const uint8_t** imageArray = board->current_image_array_;
+        int totalImages = board->current_array_size_;
         const uint8_t* currentImage = imageArray[currentIndex];
         
         // 转换并显示第一张图片
@@ -336,6 +331,38 @@ private:
         bool wasAudioPlaying = false;
         
         while (!board->task_should_exit_) {
+            // 每次循环都获取当前的图片数组和大小，以支持动态切换
+            // 这允许SwitchImageSet方法在不重启任务的情况下更改图片集
+            imageArray = board->current_image_array_;
+            totalImages = board->current_array_size_;
+            
+            // 检查图片集是否已更改
+            if (board->image_set_changed_) {
+                // 切换到新图片集的第一帧
+                currentIndex = 0;
+                currentImage = imageArray[currentIndex];
+                
+                // 转换并显示第一张图片
+                for (int i = 0; i < imgWidth * imgHeight; i++) {
+                    uint16_t pixel = ((uint16_t*)currentImage)[i];
+                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                }
+                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                ESP_LOGI(TAG, "图片集切换，显示新图片集的第一帧");
+                
+                // 重置标志
+                board->image_set_changed_ = false;
+                
+                // 更新时间戳，避免立即进入下一个更新周期
+                lastUpdateTime = xTaskGetTickCount();
+            }
+            
+            // 确保当前索引在有效范围内
+            if (currentIndex >= totalImages) {
+                currentIndex = 0;
+                currentImage = imageArray[currentIndex];
+            }
+            
             // 获取当前设备状态
             DeviceState currentState = app.GetDeviceState();
             
