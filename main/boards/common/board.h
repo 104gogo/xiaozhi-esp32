@@ -48,6 +48,9 @@ public:
     virtual bool GetBatteryLevel(int &level, bool& charging, bool& discharging);
     virtual std::string GetJson();
     virtual void SetPowerSaveMode(bool enabled) = 0;
+    
+    // 添加场景切换方法，默认实现为空操作
+    virtual void SwitchScene() { /* 默认空实现 */ }
 };
 
 #define DECLARE_BOARD(BOARD_CLASS_NAME) \

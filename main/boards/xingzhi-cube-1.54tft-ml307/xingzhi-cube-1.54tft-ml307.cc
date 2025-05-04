@@ -400,8 +400,8 @@ private:
                 // 更新上次更新时间
                 lastUpdateTime = currentTime;
             }
-            // 如果不在播放音频但上一次检查时在播放，或者当前不在第一张图片
-            else if ((!isAudioPlaying && wasAudioPlaying) || (!isAudioPlaying && currentIndex != 0)) {
+            // 只在音频播放状态从播放变为非播放时才重置到第一张图片
+            else if (!isAudioPlaying && wasAudioPlaying) {
                 // 切换回第一张图片
                 currentIndex = 0;
                 currentImage = imageArray[currentIndex];
@@ -448,6 +448,11 @@ public:
     ~XINGZHI_CUBE_1_54TFT_ML307() {
         // 确保在析构时停止任务
         StopImageSlideshow();
+    }
+
+    // 公共方法，用于切换场景，可以被IoT Thing调用
+    void SwitchScene() {
+        SwitchImageSet();
     }
 
     virtual AudioCodec* GetAudioCodec() override {

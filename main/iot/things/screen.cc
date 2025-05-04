@@ -46,6 +46,17 @@ public:
                 backlight->SetBrightness(brightness, true);
             }
         });
+
+         // 添加切换场景方法，使用空的std::vector<Parameter>来创建ParameterList
+        methods_.AddMethod("SwitchScene", "切换场景", ParameterList(), [this](const ParameterList& parameters) {
+            ESP_LOGI(TAG, "执行场景切换...");
+            
+            // 获取Board实例并直接调用SwitchScene方法
+            auto& board = Board::GetInstance();
+            board.SwitchScene();
+            
+            ESP_LOGI(TAG, "场景切换请求已完成");
+        });
     }
 };
 
