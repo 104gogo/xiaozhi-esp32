@@ -71,6 +71,7 @@ private:
     // 定义图片数组
     static constexpr int kXinyiImagesCount = 17;
     static constexpr int kPandaImagesCount = 10;
+    static constexpr int kRobotImagesCount = 7;
     
     const uint8_t* xinyi_images_[kXinyiImagesCount] = {
         gImage_1, gImage_2, gImage_3, gImage_4, gImage_5, 
@@ -86,10 +87,16 @@ private:
         gImage_output_0010
     };
     
+    const uint8_t* robot_images_[kRobotImagesCount] = {
+        gImage_robot_0001, gImage_robot_0002, gImage_robot_0003,
+        gImage_robot_0004, gImage_robot_0005, gImage_robot_0006,
+        gImage_robot_0007
+    };
+    
     // 当前使用的图片数组及其大小
     const uint8_t** current_image_array_ = xinyi_images_;
     int current_array_size_ = kXinyiImagesCount;
-    int current_image_set_ = 0; // 0表示xinyi，1表示panda
+    int current_image_set_ = 0; // 0表示xinyi，1表示panda，2表示robot
 
     void InitializePowerManager() {
         power_manager_ = new PowerManager(GPIO_NUM_38);
@@ -266,16 +273,20 @@ private:
     void SwitchImageSet() {
         // 直接切换图片集，不停止和重启任务
         // 这样可以避免不必要的任务重启，防止触发服务器重连
-        current_image_set_ = (current_image_set_ + 1) % 2;
+        current_image_set_ = (current_image_set_ + 1) % 3;
         
         if (current_image_set_ == 0) {
             current_image_array_ = xinyi_images_;
             current_array_size_ = kXinyiImagesCount;
             ESP_LOGI(TAG, "切换到新衣图片集");
-        } else {
+        } else if (current_image_set_ == 1) {
             current_image_array_ = panda_images_;
             current_array_size_ = kPandaImagesCount;
             ESP_LOGI(TAG, "切换到熊猫图片集");
+        } else {
+            current_image_array_ = robot_images_;
+            current_array_size_ = kRobotImagesCount;
+            ESP_LOGI(TAG, "切换到机器人图片集");
         }
         
         // 设置图片集已更改标志
