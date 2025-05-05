@@ -47,13 +47,49 @@ public:
             }
         });
 
-         // 添加切换场景方法，使用空的std::vector<Parameter>来创建ParameterList
-        methods_.AddMethod("SwitchScene", "切换场景", ParameterList(), [this](const ParameterList& parameters) {
-            ESP_LOGI(TAG, "执行场景切换...");
+        // 添加通用切换场景方法，支持参数指定场景索引
+        methods_.AddMethod("SwitchSceneWithIndex", "切换到指定场景", ParameterList({
+            Parameter("scene_index", "场景索引(0:新衣, 1:熊猫, 2:机器人)", kValueTypeNumber, true)
+        }), [this](const ParameterList& parameters) {
+            int scene_index = static_cast<int>(parameters["scene_index"].number());
+            ESP_LOGI(TAG, "执行场景切换到索引 %d...", scene_index);
             
-            // 获取Board实例并直接调用SwitchScene方法
+            // 获取Board实例并调用带参数的SwitchScene方法
             auto& board = Board::GetInstance();
-            board.SwitchScene();
+            board.SwitchScene(scene_index);
+            
+            ESP_LOGI(TAG, "场景切换请求已完成");
+        });
+
+        // 添加切换到新衣图片集的方法
+        methods_.AddMethod("SwitchToXinyi", "切换到新衣图片集", ParameterList(), [this](const ParameterList& parameters) {
+            ESP_LOGI(TAG, "执行场景切换到新衣图片集...");
+            
+            // 获取Board实例并调用SwitchScene方法，参数0表示新衣图片集
+            auto& board = Board::GetInstance();
+            board.SwitchScene(0);
+            
+            ESP_LOGI(TAG, "场景切换请求已完成");
+        });
+
+        // 添加切换到熊猫图片集的方法
+        methods_.AddMethod("SwitchToPanda", "切换到熊猫图片集", ParameterList(), [this](const ParameterList& parameters) {
+            ESP_LOGI(TAG, "执行场景切换到熊猫图片集...");
+            
+            // 获取Board实例并调用SwitchScene方法，参数1表示熊猫图片集
+            auto& board = Board::GetInstance();
+            board.SwitchScene(1);
+            
+            ESP_LOGI(TAG, "场景切换请求已完成");
+        });
+
+        // 添加切换到机器人图片集的方法
+        methods_.AddMethod("SwitchToRobot", "切换到机器人图片集", ParameterList(), [this](const ParameterList& parameters) {
+            ESP_LOGI(TAG, "执行场景切换到机器人图片集...");
+            
+            // 获取Board实例并调用SwitchScene方法，参数2表示机器人图片集
+            auto& board = Board::GetInstance();
+            board.SwitchScene(2);
             
             ESP_LOGI(TAG, "场景切换请求已完成");
         });

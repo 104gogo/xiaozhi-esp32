@@ -474,6 +474,37 @@ public:
         SwitchImageSet();
     }
 
+    // 公共方法，用于切换场景，可以被IoT Thing调用
+    // 重载方法，支持指定切换到哪个图片集
+    void SwitchScene(int scene_index) {
+        // 确保scene_index在有效范围内
+        if (scene_index >= 0 && scene_index < 3) {
+            // 只有当目标图片集与当前图片集不同时才切换
+            if (scene_index != current_image_set_) {
+                current_image_set_ = scene_index;
+                
+                if (current_image_set_ == 0) {
+                    current_image_array_ = xinyi_images_;
+                    current_array_size_ = kXinyiImagesCount;
+                    ESP_LOGI(TAG, "直接切换到新衣图片集");
+                } else if (current_image_set_ == 1) {
+                    current_image_array_ = panda_images_;
+                    current_array_size_ = kPandaImagesCount;
+                    ESP_LOGI(TAG, "直接切换到熊猫图片集");
+                } else {
+                    current_image_array_ = robot_images_;
+                    current_array_size_ = kRobotImagesCount;
+                    ESP_LOGI(TAG, "直接切换到机器人图片集");
+                }
+                
+                // 设置图片集已更改标志
+                image_set_changed_ = true;
+            }
+        } else {
+            ESP_LOGW(TAG, "无效的场景索引: %d, 有效范围为0-2", scene_index);
+        }
+    }
+
     virtual AudioCodec* GetAudioCodec() override {
         static NoAudioCodecSimplex audio_codec(AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
             AUDIO_I2S_SPK_GPIO_BCLK, AUDIO_I2S_SPK_GPIO_LRCK, AUDIO_I2S_SPK_GPIO_DOUT, AUDIO_I2S_MIC_GPIO_SCK, AUDIO_I2S_MIC_GPIO_WS, AUDIO_I2S_MIC_GPIO_DIN);

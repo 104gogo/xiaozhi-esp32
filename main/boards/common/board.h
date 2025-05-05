@@ -51,6 +51,9 @@ public:
     
     // 添加场景切换方法，默认实现为空操作
     virtual void SwitchScene() { /* 默认空实现 */ }
+    
+    // 添加带参数的场景切换方法，默认实现为空操作
+    virtual void SwitchScene(int scene_index) { /* 默认空实现 */ }
 };
 
 #define DECLARE_BOARD(BOARD_CLASS_NAME) \
