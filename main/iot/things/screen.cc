@@ -62,7 +62,7 @@ public:
         });
 
         // 添加切换到新衣图片集的方法
-        methods_.AddMethod("SwitchToXinyi", "切换到新衣图片集", ParameterList(), [this](const ParameterList& parameters) {
+        methods_.AddMethod("SwitchToXinyi", "我想新一了", ParameterList(), [this](const ParameterList& parameters) {
             ESP_LOGI(TAG, "执行场景切换到新衣图片集...");
             
             // 获取Board实例并调用SwitchScene方法，参数0表示新衣图片集
@@ -73,7 +73,7 @@ public:
         });
 
         // 添加切换到熊猫图片集的方法
-        methods_.AddMethod("SwitchToPanda", "切换到熊猫图片集", ParameterList(), [this](const ParameterList& parameters) {
+        methods_.AddMethod("SwitchToPanda", "回家", ParameterList(), [this](const ParameterList& parameters) {
             ESP_LOGI(TAG, "执行场景切换到熊猫图片集...");
             
             // 获取Board实例并调用SwitchScene方法，参数1表示熊猫图片集
@@ -84,7 +84,7 @@ public:
         });
 
         // 添加切换到机器人图片集的方法
-        methods_.AddMethod("SwitchToRobot", "切换到机器人图片集", ParameterList(), [this](const ParameterList& parameters) {
+        methods_.AddMethod("SwitchToRobot", "一起去玩", ParameterList(), [this](const ParameterList& parameters) {
             ESP_LOGI(TAG, "执行场景切换到机器人图片集...");
             
             // 获取Board实例并调用SwitchScene方法，参数2表示机器人图片集
