@@ -17,7 +17,6 @@ class Board {
 private:
     Board(const Board&) = delete; // 禁用拷贝构造函数
     Board& operator=(const Board&) = delete; // 禁用赋值操作
-    virtual std::string GetBoardJson() = 0;
 
 protected:
     Board();
@@ -51,9 +50,10 @@ public:
     
     // 添加场景切换方法，默认实现为空操作
     virtual void SwitchScene() { /* 默认空实现 */ }
-    
     // 添加带参数的场景切换方法，默认实现为空操作
     virtual void SwitchScene(int scene_index) { /* 默认空实现 */ }
+    
+    virtual std::string GetBoardJson() = 0;
 };
 
 #define DECLARE_BOARD(BOARD_CLASS_NAME) \
