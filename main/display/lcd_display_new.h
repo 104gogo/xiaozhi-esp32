@@ -19,6 +19,8 @@ protected:
     lv_obj_t* content_ = nullptr;
     lv_obj_t* container_ = nullptr;
     lv_obj_t* side_bar_ = nullptr;
+    lv_obj_t* update_info_ = nullptr; // 升级信息区域
+    lv_obj_t* update_label_ = nullptr; // 升级信息标签
 
     DisplayFonts fonts_;
 
@@ -42,6 +44,12 @@ public:
     // 控制底部栏显示和隐藏
     virtual void ShowSideBar() override;
     virtual void HideSideBar() override;
+
+    // 显示更新信息
+    virtual void SetUpdateMessage(const char* message) override;
+    
+    // 隐藏更新信息区域
+    virtual void HideUpdateInfo() override;
 
     // Add theme switching function
     virtual void SetTheme(const std::string& theme_name) override;

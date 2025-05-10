@@ -117,7 +117,7 @@ void Application::CheckNewVersion() {
             
             display->SetIcon(FONT_AWESOME_DOWNLOAD);
             std::string message = std::string(Lang::Strings::NEW_VERSION) + ota_.GetFirmwareVersion();
-            display->SetChatMessage("system", message.c_str());
+            display->SetUpdateMessage(message.c_str());
 
             auto& board = Board::GetInstance();
             board.SetPowerSaveMode(false);
@@ -137,16 +137,25 @@ void Application::CheckNewVersion() {
             background_task_ = nullptr;
             vTaskDelay(pdMS_TO_TICKS(1000));
 
+            // 设置界面以显示升级进度
+            display->SetStatus(Lang::Strings::UPGRADING);
+            display->SetUpdateMessage(Lang::Strings::PREPARING_UPDATE);
+
             ota_.StartUpgrade([display](int progress, size_t speed) {
                 char buffer[64];
                 snprintf(buffer, sizeof(buffer), "%d%% %zuKB/s", progress, speed / 1024);
-                display->SetChatMessage("system", buffer);
+                display->SetUpdateMessage(buffer);
             });
 
             // If upgrade success, the device will reboot and never reach here
             display->SetStatus(Lang::Strings::UPGRADE_FAILED);
+            display->SetUpdateMessage(Lang::Strings::UPGRADE_FAILED);
             ESP_LOGI(TAG, "Firmware upgrade failed...");
             vTaskDelay(pdMS_TO_TICKS(3000));
+            
+            // 隐藏升级信息区域
+            display->HideUpdateInfo();
+            
             Reboot();
             return;
         }

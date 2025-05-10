@@ -257,6 +257,14 @@ void Display::SetChatMessage(const char* role, const char* content) {
     lv_label_set_text(chat_message_label_, content);
 }
 
+void Display::SetUpdateMessage(const char* message) {
+    DisplayLockGuard lock(this);
+    // 基类实现只是一个默认操作，子类应该重写此方法
+    if (chat_message_label_ != nullptr) {
+        lv_label_set_text(chat_message_label_, message);
+    }
+}
+
 void Display::SetTheme(const std::string& theme_name) {
     current_theme_name_ = theme_name;
     Settings settings("display", true);

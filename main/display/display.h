@@ -28,6 +28,12 @@ public:
     virtual void SetTheme(const std::string& theme_name);
     virtual std::string GetTheme() { return current_theme_name_; }
     
+    // 用于显示OTA升级进度
+    virtual void SetUpdateMessage(const char* message);
+    
+    // 隐藏升级信息区域
+    virtual void HideUpdateInfo() {}
+    
     // 画布相关方法 - 用于在UI顶层显示图片
     virtual void CreateCanvas();
     virtual void DestroyCanvas();

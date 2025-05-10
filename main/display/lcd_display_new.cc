@@ -35,6 +35,10 @@
 #define LIGHT_BORDER_COLOR           lv_color_hex(0xE0E0E0)     // Light gray border
 #define LIGHT_LOW_BATTERY_COLOR      lv_color_black()           // Black for light mode
 
+// 升级信息区域背景色
+#define DARK_UPDATE_INFO_BG_COLOR    lv_color_hex(0x1A6C37)     // 深绿色背景
+#define LIGHT_UPDATE_INFO_BG_COLOR   lv_color_hex(0x95EC69)     // 浅绿色背景
+
 // Theme color structure
 struct ThemeColors {
     lv_color_t background;
@@ -46,6 +50,7 @@ struct ThemeColors {
     lv_color_t system_text;
     lv_color_t border;
     lv_color_t low_battery;
+    lv_color_t update_info_bg; // 升级信息区域背景色
 };
 
 // Define dark theme colors
@@ -58,7 +63,8 @@ static const ThemeColors DARK_THEME = {
     .system_bubble = DARK_SYSTEM_BUBBLE_COLOR,
     .system_text = DARK_SYSTEM_TEXT_COLOR,
     .border = DARK_BORDER_COLOR,
-    .low_battery = DARK_LOW_BATTERY_COLOR
+    .low_battery = DARK_LOW_BATTERY_COLOR,
+    .update_info_bg = DARK_UPDATE_INFO_BG_COLOR
 };
 
 // Define light theme colors
@@ -71,7 +77,8 @@ static const ThemeColors LIGHT_THEME = {
     .system_bubble = LIGHT_SYSTEM_BUBBLE_COLOR,
     .system_text = LIGHT_SYSTEM_TEXT_COLOR,
     .border = LIGHT_BORDER_COLOR,
-    .low_battery = LIGHT_LOW_BATTERY_COLOR
+    .low_battery = LIGHT_LOW_BATTERY_COLOR,
+    .update_info_bg = LIGHT_UPDATE_INFO_BG_COLOR
 };
 
 // Current theme - initialize based on default config
@@ -236,6 +243,9 @@ LcdDisplayNew::~LcdDisplayNew() {
     if (side_bar_ != nullptr) {
         lv_obj_del(side_bar_);
     }
+    if (update_info_ != nullptr) {
+        lv_obj_del(update_info_);
+    }
     if (container_ != nullptr) {
         lv_obj_del(container_);
     }
@@ -386,6 +396,31 @@ void LcdDisplayNew::SetupUI() {
     lv_obj_set_style_text_color(low_battery_label_, lv_color_white(), 0);
     lv_obj_center(low_battery_label_);
     lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
+    
+    /* 中部升级信息区域 */
+    update_info_ = lv_obj_create(screen);
+    lv_obj_set_size(update_info_, LV_HOR_RES * 0.8, 50);
+    lv_obj_align(update_info_, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_radius(update_info_, 8, 0); // 圆角效果
+    lv_obj_set_style_bg_color(update_info_, current_theme.update_info_bg, 0);
+    lv_obj_set_style_bg_opa(update_info_, LV_OPA_90, 0);
+    lv_obj_set_style_border_width(update_info_, 0, 0);
+    lv_obj_set_style_text_color(update_info_, lv_color_white(), 0);
+    lv_obj_set_style_pad_all(update_info_, 10, 0);
+    lv_obj_set_scrollbar_mode(update_info_, LV_SCROLLBAR_MODE_OFF);
+    
+    // 创建更新信息标签
+    update_label_ = lv_label_create(update_info_);
+    lv_obj_set_width(update_label_, LV_HOR_RES * 0.7);
+    lv_label_set_long_mode(update_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_set_style_text_align(update_label_, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_color(update_label_, lv_color_white(), 0);
+    lv_obj_set_style_text_font(update_label_, fonts_.text_font, 0);
+    lv_label_set_text(update_label_, "");
+    lv_obj_center(update_label_);
+    
+    // 默认隐藏升级信息区域
+    lv_obj_add_flag(update_info_, LV_OBJ_FLAG_HIDDEN);
 }
 
 void LcdDisplayNew::SetEmotion(const char* emotion) {
@@ -597,3 +632,36 @@ void LcdDisplayNew::SetTheme(const std::string& theme_name) {
     // No errors occurred. Save theme to settings
     Display::SetTheme(theme_name);
 }
+
+#if CONFIG_USE_WECHAT_MESSAGE_STYLE
+virtual void SetChatMessage(const char* role, const char* content) override; 
+#endif  
+
+// 显示更新信息
+void LcdDisplayNew::SetUpdateMessage(const char* message) {
+    DisplayLockGuard lock(this);
+    if (update_info_ == nullptr || update_label_ == nullptr) {
+        return;
+    }
+    
+    // 设置更新信息文本
+    lv_label_set_text(update_label_, message);
+    
+    // 显示更新信息区域
+    lv_obj_clear_flag(update_info_, LV_OBJ_FLAG_HIDDEN);
+    
+    // 确保更新信息区域显示在最前面
+    lv_obj_move_foreground(update_info_);
+}
+
+void LcdDisplayNew::HideUpdateInfo() {
+    DisplayLockGuard lock(this);
+    if (update_info_ != nullptr) {
+        // 隐藏更新信息区域
+        lv_obj_add_flag(update_info_, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+#if CONFIG_USE_WECHAT_MESSAGE_STYLE
+// 此处实现聊天消息方法，暂不修改
+#endif
