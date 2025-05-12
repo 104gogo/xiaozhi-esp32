@@ -139,7 +139,7 @@ void Application::CheckNewVersion() {
 
             // 设置界面以显示升级进度
             display->SetStatus(Lang::Strings::UPGRADING);
-            display->SetUpdateMessage(Lang::Strings::PREPARING_UPDATE);
+            display->SetUpdateMessage(Lang::Strings::UPGRADING);
 
             ota_.StartUpgrade([display](int progress, size_t speed) {
                 char buffer[64];
