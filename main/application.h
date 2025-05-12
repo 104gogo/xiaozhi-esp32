@@ -11,6 +11,7 @@
 #include <list>
 #include <vector>
 #include <condition_variable>
+#include <memory>
 
 #include <opus_encoder.h>
 #include <opus_decoder.h>
@@ -19,12 +20,10 @@
 #include "protocol.h"
 #include "ota.h"
 #include "background_task.h"
+#include "audio_processor.h"
 
 #if CONFIG_USE_WAKE_WORD_DETECT
 #include "wake_word_detect.h"
-#endif
-#if CONFIG_USE_AUDIO_PROCESSOR
-#include "audio_processor.h"
 #endif
 
 #define SCHEDULE_EVENT (1 << 0)
@@ -82,9 +81,7 @@ private:
 #if CONFIG_USE_WAKE_WORD_DETECT
     WakeWordDetect wake_word_detect_;
 #endif
-#if CONFIG_USE_AUDIO_PROCESSOR
-    AudioProcessor audio_processor_;
-#endif
+    std::unique_ptr<AudioProcessor> audio_processor_;
     Ota ota_;
     std::mutex mutex_;
     std::list<std::function<void()>> main_tasks_;
@@ -108,7 +105,8 @@ private:
     TaskHandle_t audio_loop_task_handle_ = nullptr;
     BackgroundTask* background_task_ = nullptr;
     std::chrono::steady_clock::time_point last_output_time_;
-    std::list<std::vector<uint8_t>> audio_decode_queue_;
+    std::atomic<uint32_t> last_output_timestamp_ = 0;
+    std::list<AudioStreamPacket> audio_decode_queue_;
     std::condition_variable audio_decode_cv_;
 
     std::unique_ptr<OpusEncoderWrapper> opus_encoder_;
