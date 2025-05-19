@@ -8,6 +8,7 @@ dependencies:
   espressif/esp_lcd_spd2010: "==1.0.2"
   espressif/esp_io_expander_tca9554: "==2.0.0"
   espressif/esp_lcd_panel_io_additions: "^1.0.1"
+  espressif/esp32-camera: "^2.0.10"
   78/esp_lcd_nv3023: "~1.0.0"
   78/esp-wifi-connect: "~2.4.2"
   78/esp-opus-encoder: "~2.3.2"

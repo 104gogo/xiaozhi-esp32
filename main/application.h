@@ -72,6 +72,12 @@ public:
     void WakeWordInvoke(const std::string& wake_word);
     void PlaySound(const std::string_view& sound);
     bool CanEnterSleepMode();
+    Protocol& GetProtocol() { return *protocol_; }
+
+    // 添加设备状态变化的回调函数
+    void OnDeviceStateChanged(std::function<void(DeviceState)> callback) {
+        device_state_changed_callbacks_.push_back(callback);
+    }
 
 private:
     Application();
@@ -114,6 +120,9 @@ private:
     OpusResampler input_resampler_;
     OpusResampler reference_resampler_;
     OpusResampler output_resampler_;
+
+    // 设备状态变化的回调函数列表
+    std::vector<std::function<void(DeviceState)>> device_state_changed_callbacks_;
 
     void MainEventLoop();
     void OnAudioInput();

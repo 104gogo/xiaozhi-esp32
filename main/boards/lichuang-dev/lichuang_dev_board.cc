@@ -6,6 +6,8 @@
 #include "config.h"
 #include "i2c_device.h"
 #include "iot/thing_manager.h"
+#include "camera.h"
+#include "image_slideshow.h"
 
 #include <esp_log.h>
 #include <esp_lcd_panel_vendor.h>
@@ -15,7 +17,7 @@
 #include <esp_lcd_touch_ft5x06.h>
 #include <esp_lvgl_port.h>
 #include <lvgl.h>
-
+#include "esp_camera.h" 
 
 #define TAG "LichuangDevBoard"
 
@@ -44,6 +46,8 @@ private:
     Button boot_button_;
     LcdDisplay* display_;
     Pca9557* pca9557_;
+    Camera* camera_;
+    ImageSlideshow* image_slideshow_; // 图片显示管理实例
 
     void InitializeI2c() {
         // Initialize I2C peripheral
@@ -164,11 +168,114 @@ private:
         lvgl_port_add_touch(&touch_cfg);
     }
 
+    // 摄像头硬件初始化
+    void InitializeCamera(void)
+    {
+
+        camera_config_t config;
+        config.ledc_channel = LEDC_CHANNEL_1;  // LEDC通道选择  用于生成XCLK时钟 但是S3不用
+        config.ledc_timer = LEDC_TIMER_1; // LEDC timer选择  用于生成XCLK时钟 但是S3不用
+        config.pin_d0 = CAMERA_PIN_D0;
+        config.pin_d1 = CAMERA_PIN_D1;
+        config.pin_d2 = CAMERA_PIN_D2;
+        config.pin_d3 = CAMERA_PIN_D3;
+        config.pin_d4 = CAMERA_PIN_D4;
+        config.pin_d5 = CAMERA_PIN_D5;
+        config.pin_d6 = CAMERA_PIN_D6;
+        config.pin_d7 = CAMERA_PIN_D7;
+        config.pin_xclk = CAMERA_PIN_XCLK;
+        config.pin_pclk = CAMERA_PIN_PCLK;
+        config.pin_vsync = CAMERA_PIN_VSYNC;
+        config.pin_href = CAMERA_PIN_HREF;
+        config.pin_sccb_sda = -1;   // 这里写-1 表示使用已经初始化的I2C接口
+        config.pin_sccb_scl = CAMERA_PIN_SIOC;
+        config.sccb_i2c_port = 1;
+        config.pin_pwdn = CAMERA_PIN_PWDN;
+        config.pin_reset = CAMERA_PIN_RESET;
+        config.xclk_freq_hz = XCLK_FREQ_HZ;
+        config.pixel_format = PIXFORMAT_RGB565;
+        config.frame_size = FRAMESIZE_QVGA;
+        config.jpeg_quality = 12;
+        config.fb_count = 2;
+        config.fb_location = CAMERA_FB_IN_PSRAM;
+        config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+
+        // camera init
+        esp_err_t err = esp_camera_init(&config); // 配置上面定义的参数
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Camera init failed with error 0x%x", err);
+            return;
+        }
+
+        sensor_t *s = esp_camera_sensor_get(); // 获取摄像头型号
+
+        if (s->id.PID == GC0308_PID) {
+            s->set_hmirror(s, 1);  // 这里控制摄像头镜像 写1镜像 写0不镜像
+        }
+    }
+
+    // 初始化流式摄像头
+    void InitializeStreamCamera() {
+        camera_ = new Camera();
+        
+        // 不在初始化时启动流式传输，而是等待设备进入聆听状态时再启动
+        if (camera_->is_initialized()) {
+            ESP_LOGI(TAG, "摄像头初始化成功，但将在聆听状态时才启动流式传输");
+        } else {
+            ESP_LOGW(TAG, "摄像头初始化失败");
+        }
+    }
+
+    // 启动摄像头流式传输
+    void StartCameraStreaming() {
+        if (camera_ && camera_->is_initialized() && !camera_->is_streaming()) {
+            ESP_LOGI(TAG, "开始启动摄像头流式传输");
+            camera_->start_streaming();
+        }
+    }
+
+    // 停止摄像头流式传输
+    void StopCameraStreaming() {
+        if (camera_ && camera_->is_streaming()) {
+            ESP_LOGI(TAG, "停止摄像头流式传输");
+            camera_->stop_streaming();
+        }
+    }
+
     // 物联网初始化，添加对 AI 可见设备
     void InitializeIot() {
         auto& thing_manager = iot::ThingManager::GetInstance();
         thing_manager.AddThing(iot::CreateThing("Speaker"));
         thing_manager.AddThing(iot::CreateThing("Screen"));
+    }
+
+    // 启动图片循环显示任务
+    void StartImageSlideshow() {
+        if (image_slideshow_) {
+            image_slideshow_->Start();
+        }
+    }
+    
+    // 停止图片循环显示任务
+    void StopImageSlideshow() {
+        if (image_slideshow_) {
+            image_slideshow_->Stop();
+        }
+    }
+    
+    // 启动区域检测任务
+    void StartRegionCheckTask() {
+        if (image_slideshow_) {
+            image_slideshow_->StartRegionCheck();
+        }
+    }
+    
+    // 停止区域检测任务
+    void StopRegionCheckTask() {
+        if (image_slideshow_) {
+            image_slideshow_->StopRegionCheck();
+        }
     }
 
 public:
@@ -178,8 +285,55 @@ public:
         InitializeSt7789Display();
         InitializeTouch();
         InitializeButtons();
+        InitializeCamera();
+        InitializeStreamCamera();  // 只初始化摄像头，但不开始流式传输
         InitializeIot();
         GetBacklight()->RestoreBrightness();
+        
+        // 创建图片循环显示实例
+        image_slideshow_ = new ImageSlideshow(display_);
+        
+        // 获取当前设备状态
+        auto& app = Application::GetInstance();
+        
+        // 启动图片循环显示和区域检测任务
+        StartImageSlideshow();
+        StartRegionCheckTask();
+
+        // 监听设备状态变化
+        app.OnDeviceStateChanged([this](DeviceState state) {
+            if (state == kDeviceStateListening) {
+                // 当设备进入聆听状态时启动摄像头流式传输，停止图片循环显示
+                StartCameraStreaming();
+                StopImageSlideshow();
+                ESP_LOGI(TAG, "聆听状态：停止图片循环显示");
+            } else if (state != kDeviceStateListening) {
+                // 当设备退出聆听状态时停止摄像头流式传输，重置区域索引，启动图片循环显示
+                StopCameraStreaming();
+                
+                // 重置区域索引，使图片循环显示回到初始状态
+                if (image_slideshow_) {
+                    image_slideshow_->ResetRegionIndex();
+                }
+                
+                // 启动图片循环显示
+                StartImageSlideshow();
+                ESP_LOGI(TAG, "非聆听状态：启动图片循环显示");
+            }
+        });
+    }
+
+    ~LichuangDevBoard() {
+        if (camera_) {
+            camera_->stop_streaming();
+            delete camera_;
+            camera_ = nullptr;
+        }
+        
+        if (image_slideshow_) {
+            delete image_slideshow_;
+            image_slideshow_ = nullptr;
+        }
     }
 
     virtual AudioCodec* GetAudioCodec() override {

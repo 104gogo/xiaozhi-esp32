@@ -20,6 +20,7 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "ota.cc"
             "settings.cc"
             "background_task.cc"
+            "camera.cc"
             "main.cc"
             )
 

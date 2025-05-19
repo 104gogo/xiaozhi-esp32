@@ -488,6 +488,13 @@ void Application::Start() {
                     thing_manager.Invoke(command);
                 }
             }
+            
+            // 处理相机照片响应
+            auto camera_photo_response = cJSON_GetObjectItem(root, "camera_photo_response");
+            if (camera_photo_response != NULL) {
+                // 使用Protocol类的专用方法处理照片响应
+                protocol_->OnCameraPhotoResponse(camera_photo_response);
+            }
         } else if (strcmp(type->valuestring, "system") == 0) {
             auto command = cJSON_GetObjectItem(root, "command");
             if (command != NULL) {
@@ -853,6 +860,11 @@ void Application::SetDeviceState(DeviceState state) {
         default:
             // Do nothing
             break;
+    }
+    
+    // 触发所有状态变化回调函数
+    for (const auto& callback : device_state_changed_callbacks_) {
+        callback(state);
     }
 }
 
