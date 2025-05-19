@@ -1,7 +1,8 @@
 #include "image_slideshow.h"
 #include <esp_log.h>
 
-// 包含图片数据
+// 消防喵
+
 // #include "images/lichuang/doufu/output_0001.h"
 // #include "images/lichuang/doufu/output_0002.h"
 // #include "images/lichuang/doufu/output_0003.h"
@@ -13,8 +14,6 @@
 // #include "images/lichuang/doufu/output_0009.h"
 // #include "images/lichuang/doufu/output_0010.h"
 
-
-// 包含人体检测区域对应的图片
 // #include "images/lichuang/doufu_watch2/output_0001.h"
 // #include "images/lichuang/doufu_watch2/output_0002.h"
 // #include "images/lichuang/doufu_watch2/output_0003.h"
@@ -29,7 +28,7 @@
 // #include "images/lichuang/doufu_watch2/output_0012.h"
 // #include "images/lichuang/doufu_watch2/output_0013.h"
 
-
+// 旺仔
 #include "images/lichuang/wangzai/output_0001.h"
 #include "images/lichuang/wangzai/output_0002.h"
 #include "images/lichuang/wangzai/output_0003.h"
@@ -41,7 +40,6 @@
 #include "images/lichuang/wangzai/output_0009.h"
 #include "images/lichuang/wangzai/output_0010.h"
 #include "images/lichuang/wangzai/output_0011.h"
-
 
 #include "images/lichuang/wangzai_watch/output_001.h"
 #include "images/lichuang/wangzai_watch/output_002.h"
@@ -61,7 +59,30 @@
 #define IMG_WIDTH 320
 #define IMG_HEIGHT 240
 
-// 定义全局图片数组
+// 消防喵
+// static const uint8_t* imageArray[] = {
+//     gImage_output_0001,
+//     gImage_output_0002,
+//     gImage_output_0003,
+//     gImage_output_0004,
+//     gImage_output_0005,
+//     gImage_output_0006,
+//     gImage_output_0007,
+//     gImage_output_0008,
+//     gImage_output_0009,
+//     gImage_output_0010,
+//     gImage_output_0009,
+//     gImage_output_0008,
+//     gImage_output_0007,
+//     gImage_output_0006,
+//     gImage_output_0005,
+//     gImage_output_0004,
+//     gImage_output_0003,
+//     gImage_output_0002,
+//     gImage_output_0001
+// };
+
+// 旺仔
 static const uint8_t* imageArray[] = {
     gImage_output_0001,
     gImage_output_0002,
@@ -87,7 +108,28 @@ static const uint8_t* imageArray[] = {
 };
 static const int totalImages = sizeof(imageArray) / sizeof(imageArray[0]);
 
-// 定义区域检测图片数组
+// 消防喵
+// static const uint8_t* regionImageArray[] = {
+//     watch2_output_0001,
+//     watch2_output_0002,
+//     watch2_output_0003,
+//     watch2_output_0004,
+//     watch2_output_0005,
+//     watch2_output_0006,
+//     watch2_output_0006,
+//     watch2_output_0007,
+//     watch2_output_0007,
+//     watch2_output_0007,
+//     watch2_output_0008,
+//     watch2_output_0008,
+//     watch2_output_0009,
+//     watch2_output_0010,
+//     watch2_output_0011,
+//     watch2_output_0012,
+//     watch2_output_0013,
+// };
+
+// 旺仔
 static const uint8_t* regionImageArray[] = {
     watch_output_0001,
     watch_output_0002,
