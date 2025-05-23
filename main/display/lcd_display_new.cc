@@ -701,8 +701,8 @@ void LcdDisplayNew::CreateEmojiLabel() {
     }
     
     // 设置表情标签位置为屏幕中央
-    lv_obj_set_size(emoji_label_, 240, 240);
-    lv_obj_set_pos(emoji_label_, (width_ - 240) / 2, (height_ - 240) / 2);
+    lv_obj_set_size(emoji_label_, 240, 240);  // 图片实际尺寸：宽120，高240
+    lv_obj_set_pos(emoji_label_, (width_ - 240) / 2, (height_ - 240) / 2);  // 居中：x=(240-120)/2=60, y=(240-240)/2=0
     
     // 设置字体和样式
     lv_obj_set_style_text_font(emoji_label_, emoji_font_240_, 0);

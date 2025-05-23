@@ -25,6 +25,7 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "main.cc"
             "emojis/font_emoji_240.c"
             "emojis/240/emoji_1f636_240.c"
+            "emojis/120/emoji_1f636_120.c"
             )
 
 set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing" "emojis")

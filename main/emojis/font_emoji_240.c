@@ -1,7 +1,7 @@
 #include "lvgl.h"
 #include <esp_log.h>
 
-extern const lv_image_dsc_t emoji_1f636_240; // neutral
+extern const lv_image_dsc_t emoji_1f636_120; // neutral
 extern const lv_image_dsc_t emoji_1f636_64; // neutral
 extern const lv_image_dsc_t emoji_1f642_64; // happy
 extern const lv_image_dsc_t emoji_1f606_64; // laughing
@@ -31,7 +31,7 @@ typedef struct emoji_240 {
 
 static const void* get_imgfont_path(const lv_font_t * font, uint32_t unicode, uint32_t unicode_next, int32_t * offset_y, void * user_data) {
     static const emoji_240_t emoji_240_table[] = {
-        { &emoji_1f636_240, 0x1f636 }, // neutral
+        { &emoji_1f636_120, 0x1f636 }, // neutral
         { &emoji_1f642_64, 0x1f642 }, // happy
         { &emoji_1f606_64, 0x1f606 }, // laughing
         { &emoji_1f602_64, 0x1f602 }, // funny
