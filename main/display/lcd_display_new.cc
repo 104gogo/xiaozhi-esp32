@@ -393,6 +393,18 @@ void LcdDisplayNew::SetupUI() {
     lv_label_set_text(notification_label_, "");
     lv_obj_align(notification_label_, LV_ALIGN_TOP_MID, 0, 40);
     lv_obj_add_flag(notification_label_, LV_OBJ_FLAG_HIDDEN);
+    
+    // 确保层级顺序：emoji_label_ < notification_label_ < side_bar_ < status_bar_
+    if (emoji_label_ != nullptr) {
+        lv_obj_move_foreground(emoji_label_);
+    }
+    lv_obj_move_foreground(notification_label_);
+    if (side_bar_ != nullptr) {
+        lv_obj_move_foreground(side_bar_);
+    }
+    if (status_bar_ != nullptr) {
+        lv_obj_move_foreground(status_bar_);
+    }
 
     /* 低电量弹窗 */
     low_battery_popup_ = lv_obj_create(screen);
@@ -719,8 +731,14 @@ void LcdDisplayNew::CreateEmojiLabel() {
     lv_obj_set_style_outline_width(emoji_label_, 0, 0);
     lv_obj_set_style_shadow_width(emoji_label_, 0, 0);
     
-    // 设置标签为顶层（但在状态栏之下）
+    // 确保层级顺序：emoji_label_ < notification_label_ < side_bar_ < status_bar_
     lv_obj_move_foreground(emoji_label_);
+    if (notification_label_ != nullptr) {
+        lv_obj_move_foreground(notification_label_);
+    }
+    if (side_bar_ != nullptr) {
+        lv_obj_move_foreground(side_bar_);
+    }
     if (status_bar_ != nullptr) {
         lv_obj_move_foreground(status_bar_);
     }
@@ -805,8 +823,14 @@ void LcdDisplayNew::ShowEmoji(const char* emotion) {
     // 显示表情标签
     lv_obj_clear_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
     
-    // 确保表情标签在前面显示
+    // 确保层级顺序：emoji_label_ < notification_label_ < side_bar_ < status_bar_
     lv_obj_move_foreground(emoji_label_);
+    if (notification_label_ != nullptr) {
+        lv_obj_move_foreground(notification_label_);
+    }
+    if (side_bar_ != nullptr) {
+        lv_obj_move_foreground(side_bar_);
+    }
     if (status_bar_ != nullptr) {
         lv_obj_move_foreground(status_bar_);
     }
