@@ -10,6 +10,7 @@
 #include "settings.h"
 #include "board.h"
 #include "images/xingzhi-cube-1.54/panda/gImage_output_0001.h"
+#include "../emojis/font_emoji_240.h"
 
 #define TAG "LcdDisplayNew"
 
@@ -233,6 +234,12 @@ RgbLcdDisplayNew::RgbLcdDisplayNew(esp_lcd_panel_io_handle_t panel_io, esp_lcd_p
 }
 
 LcdDisplayNew::~LcdDisplayNew() {
+    // 清理表情标签
+    if (emoji_label_ != nullptr) {
+        lv_obj_del(emoji_label_);
+        emoji_label_ = nullptr;
+    }
+    
     // 然后再清理 LVGL 对象
     if (content_ != nullptr) {
         lv_obj_del(content_);
@@ -301,6 +308,9 @@ void LcdDisplayNew::SetupUI() {
     
     // 创建画布并显示图片
     CreateCanvas();
+    
+    // 创建表情标签
+    CreateEmojiLabel();
     
     /* 顶部状态栏（半透明覆盖） */
     status_bar_ = lv_obj_create(screen);
@@ -424,7 +434,8 @@ void LcdDisplayNew::SetupUI() {
 }
 
 void LcdDisplayNew::SetEmotion(const char* emotion) {
-    // 此方法已被弃用，不再显示表情
+    // 使用新的表情画布显示表情
+    ShowEmoji(emotion);
 }
 
 void LcdDisplayNew::SetIcon(const char* icon) {
@@ -665,3 +676,150 @@ void LcdDisplayNew::HideUpdateInfo() {
 #if CONFIG_USE_WECHAT_MESSAGE_STYLE
 // 此处实现聊天消息方法，暂不修改
 #endif
+
+// 表情标签相关方法实现
+void LcdDisplayNew::CreateEmojiLabel() {
+    DisplayLockGuard lock(this);
+    
+    ESP_LOGI(TAG, "Creating emoji label");
+    
+    // 初始化表情字体
+    emoji_font_240_ = font_emoji_240_init();
+    if (emoji_font_240_ == nullptr) {
+        ESP_LOGE(TAG, "Failed to initialize emoji font");
+        return;
+    }
+    
+    // 获取活动屏幕
+    lv_obj_t* screen = lv_screen_active();
+    
+    // 创建表情标签
+    emoji_label_ = lv_label_create(screen);
+    if (emoji_label_ == nullptr) {
+        ESP_LOGE(TAG, "Failed to create emoji label");
+        return;
+    }
+    
+    // 设置表情标签位置为屏幕中央
+    lv_obj_set_size(emoji_label_, 240, 240);
+    lv_obj_set_pos(emoji_label_, (width_ - 240) / 2, (height_ - 240) / 2);
+    
+    // 设置字体和样式
+    lv_obj_set_style_text_font(emoji_label_, emoji_font_240_, 0);
+    lv_obj_set_style_text_color(emoji_label_, lv_color_white(), 0);
+    lv_obj_set_style_text_align(emoji_label_, LV_TEXT_ALIGN_CENTER, 0);
+    
+    // 设置完全透明的背景和边框
+    lv_obj_set_style_bg_opa(emoji_label_, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(emoji_label_, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_outline_opa(emoji_label_, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_shadow_opa(emoji_label_, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_pad_all(emoji_label_, 0, 0);
+    lv_obj_set_style_border_width(emoji_label_, 0, 0);
+    lv_obj_set_style_outline_width(emoji_label_, 0, 0);
+    lv_obj_set_style_shadow_width(emoji_label_, 0, 0);
+    
+    // 设置标签为顶层（但在状态栏之下）
+    lv_obj_move_foreground(emoji_label_);
+    if (status_bar_ != nullptr) {
+        lv_obj_move_foreground(status_bar_);
+    }
+    
+    // 默认隐藏表情标签
+    lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
+    
+    ESP_LOGI(TAG, "Emoji label created successfully");
+}
+
+void LcdDisplayNew::ShowEmoji(const char* emotion) {
+    DisplayLockGuard lock(this);
+    
+    // 确保有表情标签和字体
+    if (emoji_label_ == nullptr || emoji_font_240_ == nullptr) {
+        ESP_LOGE(TAG, "Emoji label or font not initialized");
+        return;
+    }
+    
+    // 表情名称到Unicode的映射表
+    struct EmotionMapping {
+        const char* name;
+        uint32_t unicode;
+    };
+    
+    static const EmotionMapping emotion_map[] = {
+        {"neutral", 0x1f636},     // 中性
+        {"happy", 0x1f642},       // 快乐
+        {"laughing", 0x1f606},    // 大笑
+        {"funny", 0x1f602},       // 有趣
+        {"sad", 0x1f614},         // 悲伤
+        {"angry", 0x1f620},       // 愤怒
+        {"crying", 0x1f62d},      // 哭泣
+        {"loving", 0x1f60d},      // 爱心
+        {"embarrassed", 0x1f633}, // 尴尬
+        {"surprised", 0x1f62f},   // 惊讶
+        {"shocked", 0x1f631},     // 震惊
+        {"thinking", 0x1f914},    // 思考
+        {"winking", 0x1f609},     // 眨眼
+        {"cool", 0x1f60e},        // 酷
+        {"relaxed", 0x1f60c},     // 放松
+        {"delicious", 0x1f924},   // 美味
+        {"kissy", 0x1f618},       // 亲吻
+        {"confident", 0x1f60f},   // 自信
+        {"sleepy", 0x1f634},      // 困倦
+        {"silly", 0x1f61c},       // 愚蠢
+        {"confused", 0x1f644},    // 困惑
+    };
+    
+    // 查找对应的表情Unicode
+    uint32_t unicode = 0x1f636; // 默认为中性表情
+    for (size_t i = 0; i < sizeof(emotion_map) / sizeof(emotion_map[0]); i++) {
+        if (strcmp(emotion, emotion_map[i].name) == 0) {
+            unicode = emotion_map[i].unicode;
+            break;
+        }
+    }
+    
+    // 将Unicode码转换为UTF-8字符串
+    char emoji_text[8];
+    if (unicode <= 0x7F) {
+        emoji_text[0] = (char)unicode;
+        emoji_text[1] = '\0';
+    } else if (unicode <= 0x7FF) {
+        emoji_text[0] = 0xC0 | (unicode >> 6);
+        emoji_text[1] = 0x80 | (unicode & 0x3F);
+        emoji_text[2] = '\0';
+    } else if (unicode <= 0xFFFF) {
+        emoji_text[0] = 0xE0 | (unicode >> 12);
+        emoji_text[1] = 0x80 | ((unicode >> 6) & 0x3F);
+        emoji_text[2] = 0x80 | (unicode & 0x3F);
+        emoji_text[3] = '\0';
+    } else {
+        emoji_text[0] = 0xF0 | (unicode >> 18);
+        emoji_text[1] = 0x80 | ((unicode >> 12) & 0x3F);
+        emoji_text[2] = 0x80 | ((unicode >> 6) & 0x3F);
+        emoji_text[3] = 0x80 | (unicode & 0x3F);
+        emoji_text[4] = '\0';
+    }
+    
+    // 设置表情字体和文本
+    lv_obj_set_style_text_font(emoji_label_, emoji_font_240_, 0);
+    lv_label_set_text(emoji_label_, emoji_text);
+    
+    // 显示表情标签
+    lv_obj_clear_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
+    
+    // 确保表情标签在前面显示
+    lv_obj_move_foreground(emoji_label_);
+    if (status_bar_ != nullptr) {
+        lv_obj_move_foreground(status_bar_);
+    }
+    
+    ESP_LOGI(TAG, "Emoji displayed: %s (0x%X)", emotion, (unsigned int)unicode);
+}
+
+void LcdDisplayNew::HideEmoji() {
+    DisplayLockGuard lock(this);
+    if (emoji_label_ != nullptr) {
+        lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
+    }
+}

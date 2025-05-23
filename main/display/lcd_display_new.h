@@ -22,11 +22,18 @@ protected:
     lv_obj_t* update_info_ = nullptr; // 升级信息区域
     lv_obj_t* update_label_ = nullptr; // 升级信息标签
 
+    // 表情显示标签
+    lv_obj_t* emoji_label_ = nullptr;
+    const lv_font_t* emoji_font_240_ = nullptr;
+
     DisplayFonts fonts_;
 
     void SetupUI();
     virtual bool Lock(int timeout_ms = 0) override;
     virtual void Unlock() override;
+
+    // 表情标签相关方法
+    void CreateEmojiLabel();
 
 protected:
     // 添加protected构造函数
@@ -53,6 +60,10 @@ public:
 
     // Add theme switching function
     virtual void SetTheme(const std::string& theme_name) override;
+
+    // 表情相关公共方法
+    virtual void ShowEmoji(const char* emotion);
+    virtual void HideEmoji();
 };
 
 // RGB LCD显示器
