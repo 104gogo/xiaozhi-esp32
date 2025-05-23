@@ -20,34 +20,37 @@
 
 #include "display/my_font.h"
 
-#include "images/xingzhi-cube-1.54/xinyi/gImage_1.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_2.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_3.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_4.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_5.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_6.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_7.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_8.h"
-#include "images/xingzhi-cube-1.54/xinyi/gImage_9.h"
+#include "images/xingzhi-cube-1.54/bg/bg1.h"
+#include "images/xingzhi-cube-1.54/bg/bg2.h"
 
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0001.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0002.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0003.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0004.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0005.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0006.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0007.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0008.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0009.h"
-#include "images/xingzhi-cube-1.54/panda/gImage_output_0010.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_1.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_2.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_3.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_4.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_5.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_6.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_7.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_8.h"
+// #include "images/xingzhi-cube-1.54/xinyi/gImage_9.h"
 
-#include "images/xingzhi-cube-1.54/robot/gImage_robot_0001.h"
-#include "images/xingzhi-cube-1.54/robot/gImage_robot_0002.h"
-#include "images/xingzhi-cube-1.54/robot/gImage_robot_0003.h"
-#include "images/xingzhi-cube-1.54/robot/gImage_robot_0004.h"
-#include "images/xingzhi-cube-1.54/robot/gImage_robot_0005.h"
-#include "images/xingzhi-cube-1.54/robot/gImage_robot_0006.h"
-#include "images/xingzhi-cube-1.54/robot/gImage_robot_0007.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0001.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0002.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0003.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0004.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0005.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0006.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0007.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0008.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0009.h"
+// #include "images/xingzhi-cube-1.54/panda/gImage_output_0010.h"
+
+// #include "images/xingzhi-cube-1.54/robot/gImage_robot_0001.h"
+// #include "images/xingzhi-cube-1.54/robot/gImage_robot_0002.h"
+// #include "images/xingzhi-cube-1.54/robot/gImage_robot_0003.h"
+// #include "images/xingzhi-cube-1.54/robot/gImage_robot_0004.h"
+// #include "images/xingzhi-cube-1.54/robot/gImage_robot_0005.h"
+// #include "images/xingzhi-cube-1.54/robot/gImage_robot_0006.h"
+// #include "images/xingzhi-cube-1.54/robot/gImage_robot_0007.h"
 
 #define TAG "XINGZHI_CUBE_1_54TFT_ML307"
 
@@ -70,33 +73,45 @@ private:
     bool image_set_changed_ = false; // 标记图片集是否已经更改
     
     // 定义图片数组
-    static constexpr int kXinyiImagesCount = 17;
-    static constexpr int kPandaImagesCount = 10;
-    static constexpr int kRobotImagesCount = 7;
+    // static constexpr int kXinyiImagesCount = 17;
+    // static constexpr int kPandaImagesCount = 10;
+    // static constexpr int kRobotImagesCount = 7;
     
-    const uint8_t* xinyi_images_[kXinyiImagesCount] = {
-        gImage_1, gImage_2, gImage_3, gImage_4, gImage_5, 
-        gImage_6, gImage_7, gImage_8, gImage_9, gImage_8, 
-        gImage_7, gImage_6, gImage_5, gImage_4, gImage_3, 
-        gImage_2, gImage_1
-    };
+    // const uint8_t* xinyi_images_[kXinyiImagesCount] = {
+    //     gImage_1, gImage_2, gImage_3, gImage_4, gImage_5, 
+    //     gImage_6, gImage_7, gImage_8, gImage_9, gImage_8, 
+    //     gImage_7, gImage_6, gImage_5, gImage_4, gImage_3, 
+    //     gImage_2, gImage_1
+    // };
     
-    const uint8_t* panda_images_[kPandaImagesCount] = {
-        gImage_output_0001, gImage_output_0002, gImage_output_0003, 
-        gImage_output_0004, gImage_output_0005, gImage_output_0006, 
-        gImage_output_0007, gImage_output_0008, gImage_output_0009, 
-        gImage_output_0010
-    };
+    // const uint8_t* panda_images_[kPandaImagesCount] = {
+    //     gImage_output_0001, gImage_output_0002, gImage_output_0003, 
+    //     gImage_output_0004, gImage_output_0005, gImage_output_0006, 
+    //     gImage_output_0007, gImage_output_0008, gImage_output_0009, 
+    //     gImage_output_0010
+    // };
     
-    const uint8_t* robot_images_[kRobotImagesCount] = {
-        gImage_robot_0001, gImage_robot_0002, gImage_robot_0003,
-        gImage_robot_0004, gImage_robot_0005, gImage_robot_0006,
-        gImage_robot_0007
+    // const uint8_t* robot_images_[kRobotImagesCount] = {
+    //     gImage_robot_0001, gImage_robot_0002, gImage_robot_0003,
+    //     gImage_robot_0004, gImage_robot_0005, gImage_robot_0006,
+    //     gImage_robot_0007
+    // };
+
+    static constexpr int kBg1ImagesCount = 1;
+    static constexpr int kBg2ImagesCount = 1;
+    const uint8_t* bg1_images_[kBg1ImagesCount] = {
+        gImage_bg1
     };
+    const uint8_t* bg2_images_[kBg2ImagesCount] = {
+        gImage_bg2
+    };
+
     
     // 当前使用的图片数组及其大小
-    const uint8_t** current_image_array_ = xinyi_images_;
-    int current_array_size_ = kXinyiImagesCount;
+    // const uint8_t** current_image_array_ = xinyi_images_;
+    // int current_array_size_ = kXinyiImagesCount;
+    const uint8_t** current_image_array_ = bg1_images_;
+    int current_array_size_ = kBg1ImagesCount;
     int current_image_set_ = 0; // 0表示xinyi，1表示panda，2表示robot
 
     void InitializePowerManager() {
@@ -290,17 +305,17 @@ private:
         current_image_set_ = (current_image_set_ + 1) % 3;
         
         if (current_image_set_ == 0) {
-            current_image_array_ = xinyi_images_;
-            current_array_size_ = kXinyiImagesCount;
-            ESP_LOGI(TAG, "切换到新衣图片集");
+            current_image_array_ = bg1_images_;
+            current_array_size_ = kBg1ImagesCount;
+            ESP_LOGI(TAG, "切换到背景1图片集");
         } else if (current_image_set_ == 1) {
-            current_image_array_ = panda_images_;
-            current_array_size_ = kPandaImagesCount;
-            ESP_LOGI(TAG, "切换到熊猫图片集");
-        } else {
-            current_image_array_ = robot_images_;
-            current_array_size_ = kRobotImagesCount;
-            ESP_LOGI(TAG, "切换到机器人图片集");
+            current_image_array_ = bg2_images_;
+            current_array_size_ = kBg2ImagesCount;
+            ESP_LOGI(TAG, "切换到背景2图片集");
+        // } else {
+        //     current_image_array_ = robot_images_;
+        //     current_array_size_ = kRobotImagesCount;
+        //     ESP_LOGI(TAG, "切换到机器人图片集");
         }
         
         // 设置图片集已更改标志
@@ -498,17 +513,17 @@ public:
                 current_image_set_ = scene_index;
                 
                 if (current_image_set_ == 0) {
-                    current_image_array_ = xinyi_images_;
-                    current_array_size_ = kXinyiImagesCount;
-                    ESP_LOGI(TAG, "直接切换到新衣图片集");
+                    current_image_array_ = bg1_images_;
+                    current_array_size_ = kBg1ImagesCount;
+                    ESP_LOGI(TAG, "直接切换到背景1图片集");
                 } else if (current_image_set_ == 1) {
-                    current_image_array_ = panda_images_;
-                    current_array_size_ = kPandaImagesCount;
-                    ESP_LOGI(TAG, "直接切换到熊猫图片集");
-                } else {
-                    current_image_array_ = robot_images_;
-                    current_array_size_ = kRobotImagesCount;
-                    ESP_LOGI(TAG, "直接切换到机器人图片集");
+                    current_image_array_ = bg2_images_;
+                    current_array_size_ = kBg2ImagesCount;
+                    ESP_LOGI(TAG, "直接切换到背景2图片集");
+                // } else {
+                //     current_image_array_ = robot_images_;
+                //     current_array_size_ = kRobotImagesCount;
+                //     ESP_LOGI(TAG, "直接切换到机器人图片集");
                 }
                 
                 // 设置图片集已更改标志
