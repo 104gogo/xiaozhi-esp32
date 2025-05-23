@@ -1,6 +1,7 @@
 #pragma once
 
 #include <lvgl.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,6 +16,12 @@ extern "C" {
 
 // 添加表情初始化函数声明
 const lv_font_t* font_emoji_240_init(void);
+
+// 设置要显示的表情（通过名称）
+bool font_emoji_240_set_emotion(const char* emotion_name);
+
+// 获取当前设置的表情图片
+const lv_image_dsc_t* font_emoji_240_get_current_emotion(void);
 
 #ifdef __cplusplus
 }

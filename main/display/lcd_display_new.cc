@@ -740,70 +740,67 @@ void LcdDisplayNew::ShowEmoji(const char* emotion) {
         return;
     }
     
-    // 表情名称到Unicode的映射表
+    // 表情名称到图片文件的映射表
     struct EmotionMapping {
-        const char* name;
-        uint32_t unicode;
+        const char* emotion_name;  // 表情名称（输入）
+        const char* image_name;    // 对应的图片文件名
     };
     
     static const EmotionMapping emotion_map[] = {
-        {"neutral", 0x1f636},     // 中性
-        {"happy", 0x1f642},       // 快乐
-        {"laughing", 0x1f606},    // 大笑
-        {"funny", 0x1f602},       // 有趣
-        {"sad", 0x1f614},         // 悲伤
-        {"angry", 0x1f620},       // 愤怒
-        {"crying", 0x1f62d},      // 哭泣
-        {"loving", 0x1f60d},      // 爱心
-        {"embarrassed", 0x1f633}, // 尴尬
-        {"surprised", 0x1f62f},   // 惊讶
-        {"shocked", 0x1f631},     // 震惊
-        {"thinking", 0x1f914},    // 思考
-        {"winking", 0x1f609},     // 眨眼
-        {"cool", 0x1f60e},        // 酷
-        {"relaxed", 0x1f60c},     // 放松
-        {"delicious", 0x1f924},   // 美味
-        {"kissy", 0x1f618},       // 亲吻
-        {"confident", 0x1f60f},   // 自信
-        {"sleepy", 0x1f634},      // 困倦
-        {"silly", 0x1f61c},       // 愚蠢
-        {"confused", 0x1f644},    // 困惑
+        {"neutral", "neutral"},         // 中性
+        {"happy", "happy"},             // 快乐
+        {"joyful", "happy"},            // 快乐（别名）
+        {"laughing", "laughing"},       // 大笑
+        {"funny", "funny"},             // 有趣
+        {"hilarious", "funny"},         // 有趣（别名）
+        {"sad", "sad"},                 // 悲伤
+        {"disappointed", "sad"},        // 悲伤（别名）
+        {"angry", "angry"},             // 愤怒
+        {"mad", "angry"},               // 愤怒（别名）
+        {"crying", "crying"},           // 哭泣
+        {"weeping", "crying"},          // 哭泣（别名）
+        {"loving", "loving"},           // 爱心
+        {"adoring", "loving"},          // 爱心（别名）
+        {"embarrassed", "embarrassed"}, // 尴尬
+        {"surprised", "surprised"},     // 惊讶
+        {"amazed", "surprised"},        // 惊讶（别名）
+        {"shocked", "shocked"},         // 震惊
+        {"thinking", "thinking"},       // 思考
+        {"pondering", "thinking"},      // 思考（别名）
+        {"winking", "winking"},         // 眨眼
+        {"cool", "cool"},               // 酷
+        {"awesome", "cool"},            // 酷（别名）
+        {"relaxed", "relaxed"},         // 放松
+        {"calm", "relaxed"},            // 放松（别名）
+        {"delicious", "delicious"},     // 美味
+        {"tasty", "delicious"},         // 美味（别名）
+        {"kissy", "kissy"},             // 亲吻
+        {"confident", "confident"},     // 自信
+        {"sleepy", "sleepy"},           // 困倦
+        {"tired", "sleepy"},            // 困倦（别名）
+        {"silly", "silly"},             // 愚蠢
+        {"confused", "confused"},       // 困惑
+        {"puzzled", "confused"},        // 困惑（别名）
     };
     
-    // 查找对应的表情Unicode
-    uint32_t unicode = 0x1f636; // 默认为中性表情
+    // 查找对应的图片文件名
+    const char* image_name = "neutral"; // 默认图片
     for (size_t i = 0; i < sizeof(emotion_map) / sizeof(emotion_map[0]); i++) {
-        if (strcmp(emotion, emotion_map[i].name) == 0) {
-            unicode = emotion_map[i].unicode;
+        if (strcmp(emotion, emotion_map[i].emotion_name) == 0) {
+            image_name = emotion_map[i].image_name;
             break;
         }
     }
     
-    // 将Unicode码转换为UTF-8字符串
-    char emoji_text[8];
-    if (unicode <= 0x7F) {
-        emoji_text[0] = (char)unicode;
-        emoji_text[1] = '\0';
-    } else if (unicode <= 0x7FF) {
-        emoji_text[0] = 0xC0 | (unicode >> 6);
-        emoji_text[1] = 0x80 | (unicode & 0x3F);
-        emoji_text[2] = '\0';
-    } else if (unicode <= 0xFFFF) {
-        emoji_text[0] = 0xE0 | (unicode >> 12);
-        emoji_text[1] = 0x80 | ((unicode >> 6) & 0x3F);
-        emoji_text[2] = 0x80 | (unicode & 0x3F);
-        emoji_text[3] = '\0';
-    } else {
-        emoji_text[0] = 0xF0 | (unicode >> 18);
-        emoji_text[1] = 0x80 | ((unicode >> 12) & 0x3F);
-        emoji_text[2] = 0x80 | ((unicode >> 6) & 0x3F);
-        emoji_text[3] = 0x80 | (unicode & 0x3F);
-        emoji_text[4] = '\0';
+    // 使用新的API设置表情
+    bool success = font_emoji_240_set_emotion(image_name);
+    if (!success) {
+        ESP_LOGW(TAG, "Emotion not found: %s, using default", image_name);
     }
     
-    // 设置表情字体和文本
+    // 设置表情字体（标签文本可以是任意字符，因为字体会忽略它）
     lv_obj_set_style_text_font(emoji_label_, emoji_font_240_, 0);
-    lv_label_set_text(emoji_label_, emoji_text);
+    lv_label_set_text(emoji_label_, "A"); // 任意字符，用于触发字体渲染
     
     // 显示表情标签
     lv_obj_clear_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
@@ -814,7 +811,7 @@ void LcdDisplayNew::ShowEmoji(const char* emotion) {
         lv_obj_move_foreground(status_bar_);
     }
     
-    ESP_LOGI(TAG, "Emoji displayed: %s (0x%X)", emotion, (unsigned int)unicode);
+    ESP_LOGI(TAG, "Emoji displayed: %s", image_name);
 }
 
 void LcdDisplayNew::HideEmoji() {
