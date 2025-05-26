@@ -6,7 +6,7 @@
 #include "config.h"
 #include "i2c_device.h"
 #include "iot/thing_manager.h"
-#include "audio_processing/audio_processor.h"
+#include "esp32_camera.h"
 
 #include <esp_log.h>
 #include <esp_lcd_panel_vendor.h>
@@ -52,6 +52,36 @@ public:
     }
 };
 
+class CustomAudioCodec : public BoxAudioCodec {
+private:
+    Pca9557* pca9557_;
+
+public:
+    CustomAudioCodec(i2c_master_bus_handle_t i2c_bus, Pca9557* pca9557) 
+        : BoxAudioCodec(i2c_bus, 
+                       AUDIO_INPUT_SAMPLE_RATE, 
+                       AUDIO_OUTPUT_SAMPLE_RATE,
+                       AUDIO_I2S_GPIO_MCLK, 
+                       AUDIO_I2S_GPIO_BCLK, 
+                       AUDIO_I2S_GPIO_WS, 
+                       AUDIO_I2S_GPIO_DOUT, 
+                       AUDIO_I2S_GPIO_DIN,
+                       GPIO_NUM_NC, 
+                       AUDIO_CODEC_ES8311_ADDR, 
+                       AUDIO_CODEC_ES7210_ADDR, 
+                       AUDIO_INPUT_REFERENCE),
+          pca9557_(pca9557) {
+    }
+
+    virtual void EnableOutput(bool enable) override {
+        BoxAudioCodec::EnableOutput(enable);
+        if (enable) {
+            pca9557_->SetOutputState(1, 1);
+        } else {
+            pca9557_->SetOutputState(1, 0);
+        }
+    }
+};
 
 class LichuangDevBoard : public WifiBoard {
 private:
@@ -60,8 +90,8 @@ private:
     Button boot_button_;
     LcdDisplay* display_;
     Pca9557* pca9557_;
-    TaskHandle_t image_task_handle_ = nullptr; // 图片显示任务句柄
-    
+    Esp32Camera* camera_;
+
     void InitializeI2c() {
         // Initialize I2C peripheral
         i2c_master_bus_config_t i2c_bus_cfg = {
@@ -181,14 +211,13 @@ private:
         lvgl_port_add_touch(&touch_cfg);
     }
 
+    void InitializeCamera() {
+        // Open camera power
+        pca9557_->SetOutputState(2, 0);
 
-    // 摄像头硬件初始化
-    void InitializeCamera(void)
-    {
-
-        camera_config_t config;
-        config.ledc_channel = LEDC_CHANNEL_1;  // LEDC通道选择  用于生成XCLK时钟 但是S3不用
-        config.ledc_timer = LEDC_TIMER_1; // LEDC timer选择  用于生成XCLK时钟 但是S3不用
+        camera_config_t config = {};
+        config.ledc_channel = LEDC_CHANNEL_2;  // LEDC通道选择  用于生成XCLK时钟 但是S3不用
+        config.ledc_timer = LEDC_TIMER_2; // LEDC timer选择  用于生成XCLK时钟 但是S3不用
         config.pin_d0 = CAMERA_PIN_D0;
         config.pin_d1 = CAMERA_PIN_D1;
         config.pin_d2 = CAMERA_PIN_D2;
@@ -203,174 +232,18 @@ private:
         config.pin_href = CAMERA_PIN_HREF;
         config.pin_sccb_sda = -1;   // 这里写-1 表示使用已经初始化的I2C接口
         config.pin_sccb_scl = CAMERA_PIN_SIOC;
-        config.sccb_i2c_port = 0;
+        config.sccb_i2c_port = 1;
         config.pin_pwdn = CAMERA_PIN_PWDN;
         config.pin_reset = CAMERA_PIN_RESET;
         config.xclk_freq_hz = XCLK_FREQ_HZ;
         config.pixel_format = PIXFORMAT_RGB565;
-        config.frame_size = FRAMESIZE_QVGA;
+        config.frame_size = FRAMESIZE_VGA;
         config.jpeg_quality = 12;
-        config.fb_count = 2;
+        config.fb_count = 1;
         config.fb_location = CAMERA_FB_IN_PSRAM;
         config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
 
-        // camera init
-        esp_err_t err = esp_camera_init(&config); // 配置上面定义的参数
-        if (err != ESP_OK)
-        {
-            ESP_LOGE(TAG, "Camera init failed with error 0x%x", err);
-            return;
-        }
-
-        sensor_t *s = esp_camera_sensor_get(); // 获取摄像头型号
-
-        if (s->id.PID == GC0308_PID) {
-            s->set_hmirror(s, 1);  // 这里控制摄像头镜像 写1镜像 写0不镜像
-        }
-    }
-
-    // 物联网初始化，添加对 AI 可见设备
-    void InitializeIot() {
-        auto& thing_manager = iot::ThingManager::GetInstance();
-        thing_manager.AddThing(iot::CreateThing("Speaker"));
-        thing_manager.AddThing(iot::CreateThing("Screen"));
-        thing_manager.AddThing(iot::CreateThing("Camera"));
-
-    }
-    
-    // 启动图片循环显示任务
-    void StartImageSlideshow() {
-        xTaskCreate(ImageSlideshowTask, "img_slideshow", 4096, this, 3, &image_task_handle_);
-        ESP_LOGI(TAG, "图片循环显示任务已启动");
-    }
-    
-    // 图片循环显示任务函数
-    static void ImageSlideshowTask(void* arg) {
-        LichuangDevBoard* board = static_cast<LichuangDevBoard*>(arg);
-        Display* display = board->GetDisplay();
-        
-        if (!display) {
-            ESP_LOGE(TAG, "无法获取显示设备");
-            vTaskDelete(NULL);
-            return;
-        }
-        
-        // 获取AudioProcessor实例的事件组 - 从application.h中直接获取
-        auto& app = Application::GetInstance();
-        // 这里使用Application中可用的方法来判断音频状态
-        // 根据编译错误修改为可用的方法
-        
-        // 创建画布（如果不存在）
-        if (!display->HasCanvas()) {
-            display->CreateCanvas();
-        }
-        
-        // 设置图片显示参数
-        int imgWidth = 320;
-        int imgHeight = 240;
-        int x = 0;
-        int y = 0;
-        
-        // 设置图片数组
-        const uint8_t* imageArray[] = {
-            gImage_output_0001,
-            gImage_output_0002,
-            gImage_output_0003,
-            gImage_output_0004,
-            gImage_output_0005,
-            gImage_output_0006,
-            gImage_output_0007,
-            gImage_output_0008,
-            gImage_output_0009,
-            gImage_output_0010,
-            gImage_output_0009,
-            gImage_output_0008,
-            gImage_output_0007,
-            gImage_output_0006,
-            gImage_output_0005,
-            gImage_output_0004,
-            gImage_output_0003,
-            gImage_output_0002,
-            gImage_output_0001
-        };
-        const int totalImages = sizeof(imageArray) / sizeof(imageArray[0]);
-        
-        // 创建临时缓冲区用于字节序转换
-        uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
-        if (!convertedData) {
-            ESP_LOGE(TAG, "无法分配内存进行图像转换");
-            vTaskDelete(NULL);
-            return;
-        }
-        
-        // 先显示第一张图片
-        int currentIndex = 0;
-        const uint8_t* currentImage = imageArray[currentIndex];
-        
-        // 转换并显示第一张图片
-        for (int i = 0; i < imgWidth * imgHeight; i++) {
-            uint16_t pixel = ((uint16_t*)currentImage)[i];
-            convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
-        }
-        display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-        ESP_LOGI(TAG, "初始显示图片");
-        
-        // 持续监控和处理图片显示
-        TickType_t lastUpdateTime = xTaskGetTickCount();
-        const TickType_t cycleInterval = pdMS_TO_TICKS(60); // 图片切换间隔60毫秒
-        
-        // 定义用于判断是否正在播放音频的变量
-        bool isAudioPlaying = false;
-        bool wasAudioPlaying = false;
-        
-        while (true) {
-            // 检查是否正在播放音频 - 使用应用程序状态判断
-            isAudioPlaying = (app.GetDeviceState() == kDeviceStateSpeaking);
-            
-            TickType_t currentTime = xTaskGetTickCount();
-            
-            // 如果正在播放音频且时间到了切换间隔
-            if (isAudioPlaying && (currentTime - lastUpdateTime >= cycleInterval)) {
-                // 更新索引到下一张图片
-                currentIndex = (currentIndex + 1) % totalImages;
-                currentImage = imageArray[currentIndex];
-                
-                // 转换并显示新图片
-                for (int i = 0; i < imgWidth * imgHeight; i++) {
-                    uint16_t pixel = ((uint16_t*)currentImage)[i];
-                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
-                }
-                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-                ESP_LOGI(TAG, "循环显示图片");
-                
-                // 更新上次更新时间
-                lastUpdateTime = currentTime;
-            }
-            // 如果不在播放音频但上一次检查时在播放，或者当前不在第一张图片
-            else if ((!isAudioPlaying && wasAudioPlaying) || (!isAudioPlaying && currentIndex != 0)) {
-                // 切换回第一张图片
-                currentIndex = 0;
-                currentImage = imageArray[currentIndex];
-                
-                // 转换并显示第一张图片
-                for (int i = 0; i < imgWidth * imgHeight; i++) {
-                    uint16_t pixel = ((uint16_t*)currentImage)[i];
-                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
-                }
-                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
-                ESP_LOGI(TAG, "返回显示初始图片");
-            }
-            
-            // 更新上一次音频播放状态
-            wasAudioPlaying = isAudioPlaying;
-            
-            // 短暂延时，避免CPU占用过高
-            vTaskDelay(pdMS_TO_TICKS(100));
-        }
-        
-        // 释放资源（实际上不会执行到这里，除非任务被外部终止）
-        delete[] convertedData;
-        vTaskDelete(NULL);
+        camera_ = new Esp32Camera(config);
     }
 
 public:
@@ -381,7 +254,12 @@ public:
         InitializeTouch();
         InitializeButtons();
         InitializeCamera();
-        InitializeIot();
+
+#if CONFIG_IOT_PROTOCOL_XIAOZHI
+        auto& thing_manager = iot::ThingManager::GetInstance();
+        thing_manager.AddThing(iot::CreateThing("Speaker"));
+        thing_manager.AddThing(iot::CreateThing("Screen"));
+#endif
         GetBacklight()->RestoreBrightness();
         
         // 启动图片循环显示任务
@@ -389,19 +267,9 @@ public:
     }
 
     virtual AudioCodec* GetAudioCodec() override {
-        static BoxAudioCodec audio_codec(
+        static CustomAudioCodec audio_codec(
             i2c_bus_, 
-            AUDIO_INPUT_SAMPLE_RATE, 
-            AUDIO_OUTPUT_SAMPLE_RATE,
-            AUDIO_I2S_GPIO_MCLK, 
-            AUDIO_I2S_GPIO_BCLK, 
-            AUDIO_I2S_GPIO_WS, 
-            AUDIO_I2S_GPIO_DOUT, 
-            AUDIO_I2S_GPIO_DIN,
-            GPIO_NUM_NC, 
-            AUDIO_CODEC_ES8311_ADDR, 
-            AUDIO_CODEC_ES7210_ADDR, 
-            AUDIO_INPUT_REFERENCE);
+            pca9557_);
         return &audio_codec;
     }
 
@@ -412,6 +280,10 @@ public:
     virtual Backlight* GetBacklight() override {
         static PwmBacklight backlight(DISPLAY_BACKLIGHT_PIN, DISPLAY_BACKLIGHT_OUTPUT_INVERT);
         return &backlight;
+    }
+
+    virtual Camera* GetCamera() override {
+        return camera_;
     }
 };
 

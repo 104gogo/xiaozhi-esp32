@@ -1,9 +1,9 @@
 #include "dummy_audio_processor.h"
 #include <esp_log.h>
 
-static const char* TAG = "DummyAudioProcessor";
+#define TAG "DummyAudioProcessor"
 
-void DummyAudioProcessor::Initialize(AudioCodec* codec, bool realtime_chat) {
+void DummyAudioProcessor::Initialize(AudioCodec* codec) {
     codec_ = codec;
 }
 
