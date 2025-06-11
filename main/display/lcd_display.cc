@@ -907,6 +907,36 @@ void LcdDisplay::SetIcon(const char* icon) {
 #endif
 }
 
+void LcdDisplay::SetMusicInfo(const char* song_name) {
+#if CONFIG_USE_WECHAT_MESSAGE_STYLE
+    // 微信模式下不显示歌名，保持原有聊天功能
+    return;
+#else
+    // 非微信模式：在表情下方显示歌名
+    DisplayLockGuard lock(this);
+    if (chat_message_label_ == nullptr) {
+        return;
+    }
+    
+    if (song_name != nullptr && strlen(song_name) > 0) {
+        std::string music_text = "";
+        music_text += song_name;
+        lv_label_set_text(chat_message_label_, music_text.c_str());
+        
+        // 确保显示 emotion_label_ 和 chat_message_label_，隐藏 preview_image_
+        if (emotion_label_ != nullptr) {
+            lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (preview_image_ != nullptr) {
+            lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
+        }
+    } else {
+        // 清空歌名显示
+        lv_label_set_text(chat_message_label_, "");
+    }
+#endif
+}
+
 void LcdDisplay::SetTheme(const std::string& theme_name) {
     DisplayLockGuard lock(this);
     

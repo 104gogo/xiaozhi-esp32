@@ -80,6 +80,9 @@ public:
     void SetAecMode(AecMode mode);
     AecMode GetAecMode() const { return aec_mode_; }
     BackgroundTask* GetBackgroundTask() const { return background_task_; }
+    
+    // 新增：接收外部音频数据（如音乐播放）
+    void AddAudioData(AudioStreamPacket&& packet);
 
 private:
     Application();

@@ -103,6 +103,28 @@ void McpServer::AddCommonTools() {
             });
     }
 
+    auto music = board.GetMusic();
+    if (music) {
+        AddTool("self.music.play_song",
+            "播放指定的歌曲。当用户要求播放音乐时使用此工具，会自动获取歌曲详情并开始流式播放。\n"
+            "参数:\n"
+            "  `song_name`: 要播放的歌曲名称。\n"
+            "返回:\n"
+            "  播放状态信息，不需确认，立刻播放歌曲。",
+            PropertyList({
+                Property("song_name", kPropertyTypeString)
+            }),
+            [music](const PropertyList& properties) -> ReturnValue {
+                auto song_name = properties["song_name"].value<std::string>();
+                if (!music->Download(song_name)) {
+                    return "{\"success\": false, \"message\": \"获取音乐资源失败\"}";
+                }
+                auto download_result = music->GetDownloadResult();
+                ESP_LOGD(TAG, "Music details result: %s", download_result.c_str());
+                return true;
+            });
+    }
+
     // Restore the original tools list to the end of the tools list
     tools_.insert(tools_.end(), original_tools.begin(), original_tools.end());
 }

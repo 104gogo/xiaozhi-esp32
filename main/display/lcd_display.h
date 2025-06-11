@@ -50,6 +50,7 @@ public:
     ~LcdDisplay();
     virtual void SetEmotion(const char* emotion) override;
     virtual void SetIcon(const char* icon) override;
+    virtual void SetMusicInfo(const char* song_name) override;
     virtual void SetPreviewImage(const lv_img_dsc_t* img_dsc) override;
 #if CONFIG_USE_WECHAT_MESSAGE_STYLE
     virtual void SetChatMessage(const char* role, const char* content) override; 
