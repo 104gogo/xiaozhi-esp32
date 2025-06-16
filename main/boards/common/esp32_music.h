@@ -1,3 +1,4 @@
+
 #ifndef ESP32_MUSIC_H
 #define ESP32_MUSIC_H
 
@@ -7,6 +8,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <vector>
 
 #include "music.h"
 
@@ -30,11 +32,22 @@ private:
     std::string current_music_url_;
     std::string current_song_name_;
     bool song_name_displayed_;
+    
+    // 歌词相关
+    std::string current_lyric_url_;
+    std::vector<std::pair<int, std::string>> lyrics_;  // 时间戳和歌词文本
+    std::mutex lyrics_mutex_;  // 保护lyrics_数组的互斥锁
+    std::atomic<int> current_lyric_index_;
+    std::thread lyric_thread_;
+    std::atomic<bool> is_lyric_running_;
     std::atomic<bool> is_playing_;
     std::atomic<bool> is_downloading_;
     std::thread play_thread_;
     std::thread download_thread_;
-    
+    int64_t current_play_time_ms_;  // 当前播放时间(毫秒)
+    int64_t last_frame_time_ms_;    // 上一帧的时间戳
+    int total_frames_decoded_;      // 已解码的帧数
+
     // 音频缓冲区
     std::queue<AudioChunk> audio_buffer_;
     std::mutex buffer_mutex_;
@@ -54,6 +67,12 @@ private:
     void ClearAudioBuffer();
     bool InitializeMp3Decoder();
     void CleanupMp3Decoder();
+    
+    // 歌词相关私有方法
+    bool DownloadLyrics(const std::string& lyric_url);
+    bool ParseLyrics(const std::string& lyric_content);
+    void LyricDisplayThread();
+    void UpdateLyricDisplay(int64_t current_time_ms);
 
 public:
     Esp32Music();
@@ -71,4 +90,4 @@ public:
     virtual bool IsDownloading() const override { return is_downloading_; }
 };
 
-#endif // ESP32_MUSIC_H 
+#endif // ESP32_MUSIC_H

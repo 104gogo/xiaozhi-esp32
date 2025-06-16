@@ -1123,47 +1123,54 @@ void Application::AddAudioData(AudioStreamPacket&& packet) {
                 
                 std::vector<int16_t> resampled;
                 
+                // 使用浮点数计算精确的重采样比率
+                float ratio = static_cast<float>(packet.sample_rate) / codec->output_sample_rate();
+                
                 if (packet.sample_rate > codec->output_sample_rate()) {
-                    // 降采样：跳过样本
-                    int skip_ratio = packet.sample_rate / codec->output_sample_rate();
-                    if (skip_ratio <= 1) skip_ratio = 2;  // 至少跳过一个样本
+                    // 降采样：按精确比率跳跃采样
+                    size_t expected_size = static_cast<size_t>(pcm_data.size() / ratio + 0.5f);
+                    resampled.reserve(expected_size);
                     
-                    resampled.reserve(pcm_data.size() / skip_ratio + 1);
-                    for (size_t i = 0; i < pcm_data.size(); i += skip_ratio) {
-                        resampled.push_back(pcm_data[i]);
+                    for (float i = 0; i < pcm_data.size(); i += ratio) {
+                        size_t index = static_cast<size_t>(i + 0.5f);  // 四舍五入
+                        if (index < pcm_data.size()) {
+                            resampled.push_back(pcm_data[index]);
+                        }
                     }
                     
-                    // ESP_LOGI(TAG, "Downsampled %d -> %d samples (ratio: %d)", 
-                    //         pcm_data.size(), resampled.size(), skip_ratio);
+                    ESP_LOGD(TAG, "Downsampled %d -> %d samples (ratio: %.3f)", 
+                            pcm_data.size(), resampled.size(), ratio);
                             
                 } else {
                     // 上采样：线性插值
-                    int repeat_ratio = codec->output_sample_rate() / packet.sample_rate;
-                    if (repeat_ratio <= 1) repeat_ratio = 2;  // 至少重复一次
+                    float upsample_ratio = codec->output_sample_rate() / static_cast<float>(packet.sample_rate);
+                    size_t expected_size = static_cast<size_t>(pcm_data.size() * upsample_ratio + 0.5f);
+                    resampled.reserve(expected_size);
                     
-                    resampled.reserve(pcm_data.size() * repeat_ratio);
                     for (size_t i = 0; i < pcm_data.size(); ++i) {
                         // 添加原始样本
                         resampled.push_back(pcm_data[i]);
                         
-                        // 添加插值样本
-                        if (i + 1 < pcm_data.size()) {
+                        // 计算需要插值的样本数
+                        int interpolation_count = static_cast<int>(upsample_ratio) - 1;
+                        if (interpolation_count > 0 && i + 1 < pcm_data.size()) {
                             int16_t current = pcm_data[i];
                             int16_t next = pcm_data[i + 1];
-                            for (int j = 1; j < repeat_ratio; ++j) {
-                                int16_t interpolated = current + ((next - current) * j) / repeat_ratio;
+                            for (int j = 1; j <= interpolation_count; ++j) {
+                                float t = static_cast<float>(j) / (interpolation_count + 1);
+                                int16_t interpolated = static_cast<int16_t>(current + (next - current) * t);
                                 resampled.push_back(interpolated);
                             }
-                        } else {
+                        } else if (interpolation_count > 0) {
                             // 最后一个样本，直接重复
-                            for (int j = 1; j < repeat_ratio; ++j) {
+                            for (int j = 1; j <= interpolation_count; ++j) {
                                 resampled.push_back(pcm_data[i]);
                             }
                         }
                     }
                     
-                    ESP_LOGI(TAG, "Upsampled %d -> %d samples (ratio: %d)", 
-                            pcm_data.size(), resampled.size(), repeat_ratio);
+                    ESP_LOGI(TAG, "Upsampled %d -> %d samples (ratio: %.2f)", 
+                            pcm_data.size(), resampled.size(), upsample_ratio);
                 }
                 
                 pcm_data = std::move(resampled);
