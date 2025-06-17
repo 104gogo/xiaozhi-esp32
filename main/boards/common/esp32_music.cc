@@ -653,6 +653,9 @@ void Esp32Music::PlayAudioStream() {
         return;
     }
     
+    // 标记是否已经处理过ID3标签
+    bool id3_processed = false;
+    
     while (is_playing_) {
         // 检查设备状态，只有在空闲状态才播放音乐
         auto& app = Application::GetInstance();
@@ -729,6 +732,17 @@ void Esp32Music::PlayAudioStream() {
                 bytes_left += copy_size;
                 read_ptr = mp3_input_buffer;
                 
+                // 检查并跳过ID3标签（仅在开始时处理一次）
+                if (!id3_processed && bytes_left >= 10) {
+                    size_t id3_skip = SkipId3Tag(read_ptr, bytes_left);
+                    if (id3_skip > 0) {
+                        read_ptr += id3_skip;
+                        bytes_left -= id3_skip;
+                        ESP_LOGI(TAG, "Skipped ID3 tag: %u bytes", (unsigned int)id3_skip);
+                    }
+                    id3_processed = true;
+                }
+                
                 // 释放chunk内存
                 heap_caps_free(chunk.data);
             }
@@ -756,6 +770,13 @@ void Esp32Music::PlayAudioStream() {
             // 解码成功，获取帧信息
             MP3GetLastFrameInfo(mp3_decoder_, &mp3_frame_info_);
             total_frames_decoded_++;
+            
+            // 基本的帧信息有效性检查，防止除零错误
+            if (mp3_frame_info_.samprate == 0 || mp3_frame_info_.nChans == 0) {
+                ESP_LOGW(TAG, "Invalid frame info: rate=%d, channels=%d, skipping", 
+                        mp3_frame_info_.samprate, mp3_frame_info_.nChans);
+                continue;
+            }
             
             // 计算当前帧的持续时间(毫秒)
             int frame_duration_ms = (mp3_frame_info_.outputSamps * 1000) / 
@@ -903,6 +924,35 @@ void Esp32Music::CleanupMp3Decoder() {
     }
     mp3_decoder_initialized_ = false;
     ESP_LOGI(TAG, "MP3 decoder cleaned up");
+}
+
+// 跳过MP3文件开头的ID3标签
+size_t Esp32Music::SkipId3Tag(uint8_t* data, size_t size) {
+    if (!data || size < 10) {
+        return 0;
+    }
+    
+    // 检查ID3v2标签头 "ID3"
+    if (memcmp(data, "ID3", 3) != 0) {
+        return 0;
+    }
+    
+    // 计算标签大小（synchsafe integer格式）
+    uint32_t tag_size = ((uint32_t)(data[6] & 0x7F) << 21) |
+                        ((uint32_t)(data[7] & 0x7F) << 14) |
+                        ((uint32_t)(data[8] & 0x7F) << 7)  |
+                        ((uint32_t)(data[9] & 0x7F));
+    
+    // ID3v2头部(10字节) + 标签内容
+    size_t total_skip = 10 + tag_size;
+    
+    // 确保不超过可用数据大小
+    if (total_skip > size) {
+        total_skip = size;
+    }
+    
+    ESP_LOGI(TAG, "Found ID3v2 tag, skipping %u bytes", (unsigned int)total_skip);
+    return total_skip;
 }
 
 // 下载歌词

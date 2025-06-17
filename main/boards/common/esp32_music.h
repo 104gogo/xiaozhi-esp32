@@ -1,4 +1,3 @@
-
 #ifndef ESP32_MUSIC_H
 #define ESP32_MUSIC_H
 
@@ -73,6 +72,9 @@ private:
     bool ParseLyrics(const std::string& lyric_content);
     void LyricDisplayThread();
     void UpdateLyricDisplay(int64_t current_time_ms);
+    
+    // ID3标签处理
+    size_t SkipId3Tag(uint8_t* data, size_t size);
 
 public:
     Esp32Music();
