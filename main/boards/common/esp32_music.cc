@@ -368,18 +368,7 @@ bool Esp32Music::Stop() {
     is_playing_ = false;
     
     // 重置采样率到原始值
-    auto& board = Board::GetInstance();
-    auto codec = board.GetAudioCodec();
-    if (codec && codec->original_output_sample_rate() > 0 && 
-        codec->output_sample_rate() != codec->original_output_sample_rate()) {
-        ESP_LOGI(TAG, "音乐停止：将采样率从 %d Hz 重置到原始值 %d Hz", 
-                codec->output_sample_rate(), codec->original_output_sample_rate());
-        if (codec->SetOutputSampleRate(-1)) {  // -1 表示重置到原始值
-            ESP_LOGI(TAG, "成功重置采样率到原始值: %d Hz", codec->output_sample_rate());
-        } else {
-            ESP_LOGW(TAG, "无法重置采样率到原始值");
-        }
-    }
+    ResetSampleRate();
     
     // 通知所有等待的线程
     {
@@ -481,17 +470,7 @@ bool Esp32Music::StopStreaming() {
     }
     
     // 重置采样率到原始值
-    auto codec = board.GetAudioCodec();
-    if (codec && codec->original_output_sample_rate() > 0 && 
-        codec->output_sample_rate() != codec->original_output_sample_rate()) {
-        ESP_LOGI(TAG, "音乐停止：将采样率从 %d Hz 重置到原始值 %d Hz", 
-                codec->output_sample_rate(), codec->original_output_sample_rate());
-        if (codec->SetOutputSampleRate(-1)) {  // -1 表示重置到原始值
-            ESP_LOGI(TAG, "成功重置采样率到原始值: %d Hz", codec->output_sample_rate());
-        } else {
-            ESP_LOGW(TAG, "无法重置采样率到原始值");
-        }
-    }
+    ResetSampleRate();
     
     // 通知所有等待的线程
     {
@@ -901,12 +880,14 @@ void Esp32Music::PlayAudioStream() {
         ESP_LOGI(TAG, "Cleared song name display on playback end");
     }
     
+    // 重置采样率到原始值
+    ResetSampleRate();
+    
     // 播放结束时保持音频输出启用状态，让Application管理
     // 不在这里禁用音频输出，避免干扰其他音频功能
     ESP_LOGI(TAG, "Audio stream playback finished, total played: %d bytes", total_played);
     
     is_playing_ = false;
-    ESP_LOGI(TAG, "Audio stream playback finished, total played: %d bytes", total_played);
 }
 
 // 清空音频缓冲区
@@ -947,6 +928,22 @@ void Esp32Music::CleanupMp3Decoder() {
     }
     mp3_decoder_initialized_ = false;
     ESP_LOGI(TAG, "MP3 decoder cleaned up");
+}
+
+// 重置采样率到原始值
+void Esp32Music::ResetSampleRate() {
+    auto& board = Board::GetInstance();
+    auto codec = board.GetAudioCodec();
+    if (codec && codec->original_output_sample_rate() > 0 && 
+        codec->output_sample_rate() != codec->original_output_sample_rate()) {
+        ESP_LOGI(TAG, "重置采样率：从 %d Hz 重置到原始值 %d Hz", 
+                codec->output_sample_rate(), codec->original_output_sample_rate());
+        if (codec->SetOutputSampleRate(-1)) {  // -1 表示重置到原始值
+            ESP_LOGI(TAG, "成功重置采样率到原始值: %d Hz", codec->output_sample_rate());
+        } else {
+            ESP_LOGW(TAG, "无法重置采样率到原始值");
+        }
+    }
 }
 
 // 跳过MP3文件开头的ID3标签

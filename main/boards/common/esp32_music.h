@@ -66,6 +66,7 @@ private:
     void ClearAudioBuffer();
     bool InitializeMp3Decoder();
     void CleanupMp3Decoder();
+    void ResetSampleRate();  // 重置采样率到原始值
     
     // 歌词相关私有方法
     bool DownloadLyrics(const std::string& lyric_url);
