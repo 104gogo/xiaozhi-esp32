@@ -1123,24 +1123,16 @@ void Application::AddAudioData(AudioStreamPacket&& packet) {
                 
                 std::vector<int16_t> resampled;
                 
-                // 使用浮点数计算精确的重采样比率
-                float ratio = static_cast<float>(packet.sample_rate) / codec->output_sample_rate();
-                
                 if (packet.sample_rate > codec->output_sample_rate()) {
-                    // 降采样：按精确比率跳跃采样
-                    size_t expected_size = static_cast<size_t>(pcm_data.size() / ratio + 0.5f);
-                    resampled.reserve(expected_size);
-                    
-                    for (float i = 0; i < pcm_data.size(); i += ratio) {
-                        size_t index = static_cast<size_t>(i + 0.5f);  // 四舍五入
-                        if (index < pcm_data.size()) {
-                            resampled.push_back(pcm_data[index]);
-                        }
+                    ESP_LOGI(TAG, "音乐播放：将采样率从 %d Hz 切换到 %d Hz", 
+                        codec->output_sample_rate(), packet.sample_rate);
+
+                    // 尝试动态切换采样率
+                    if (codec->SetOutputSampleRate(packet.sample_rate)) {
+                        ESP_LOGI(TAG, "成功切换到音乐播放采样率: %d Hz", packet.sample_rate);
+                    } else {
+                        ESP_LOGW(TAG, "无法切换采样率，继续使用当前采样率: %d Hz", codec->output_sample_rate());
                     }
-                    
-                    ESP_LOGD(TAG, "Downsampled %d -> %d samples (ratio: %.3f)", 
-                            pcm_data.size(), resampled.size(), ratio);
-                            
                 } else {
                     // 上采样：线性插值
                     float upsample_ratio = codec->output_sample_rate() / static_cast<float>(packet.sample_rate);
