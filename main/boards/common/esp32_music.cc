@@ -450,6 +450,9 @@ bool Esp32Music::StartStreaming(const std::string& music_url) {
 bool Esp32Music::StopStreaming() {
     ESP_LOGI(TAG, "Stopping music streaming - current state: downloading=%d, playing=%d", 
             is_downloading_.load(), is_playing_.load());
+
+    // 重置采样率到原始值
+    ResetSampleRate();
     
     // 检查是否有流式播放正在进行
     if (!is_playing_ && !is_downloading_) {
@@ -468,9 +471,6 @@ bool Esp32Music::StopStreaming() {
         display->SetMusicInfo("");  // 清空歌名显示
         ESP_LOGI(TAG, "Cleared song name display");
     }
-    
-    // 重置采样率到原始值
-    ResetSampleRate();
     
     // 通知所有等待的线程
     {
@@ -879,7 +879,7 @@ void Esp32Music::PlayAudioStream() {
         display->SetMusicInfo("");  // 清空歌名显示
         ESP_LOGI(TAG, "Cleared song name display on playback end");
     }
-    
+
     // 重置采样率到原始值
     ResetSampleRate();
     
