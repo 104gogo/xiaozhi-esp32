@@ -103,6 +103,27 @@ void McpServer::AddCommonTools() {
             });
     }
 
+    auto voice_changer = board.GetVoiceChanger();
+    if (voice_changer) {
+        AddTool("self.voice.set_voice",
+            "Change the voice type for text-to-speech.\n"
+            "Args:\n"
+            "  `voice_type`: The type of voice to use (e.g., 'default', 'male', 'female', 'child', 'elder').\n"
+            "Return:\n"
+            "  A JSON object indicating success or failure.",
+            PropertyList({
+                Property("voice_type", kPropertyTypeString)
+            }),
+            [voice_changer](const PropertyList& properties) -> ReturnValue {
+                auto voice_type = properties["voice_type"].value<std::string>();
+                if (voice_changer->SetVoice(voice_type)) {
+                    return "{\"success\": true, \"message\": \"Voice changed to " + voice_type + "\"}";
+                } else {
+                    return "{\"success\": false, \"message\": \"Failed to change voice\"}";
+                }
+            });
+    }
+
     // Restore the original tools list to the end of the tools list
     tools_.insert(tools_.end(), original_tools.begin(), original_tools.end());
 }

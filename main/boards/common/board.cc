@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "display/display.h"
 #include "assets/lang_config.h"
+#include "esp32_voice_changer.h"
 
 #include <esp_log.h>
 #include <esp_ota_ops.h>
@@ -59,6 +60,11 @@ Display* Board::GetDisplay() {
 
 Camera* Board::GetCamera() {
     return nullptr;
+}
+
+VoiceChanger* Board::GetVoiceChanger() {
+    static Esp32VoiceChanger voice_changer;
+    return &voice_changer;
 }
 
 Led* Board::GetLed() {
