@@ -2,6 +2,7 @@
 #include "mcp_server.h"
 #include "board.h"
 #include "system_info.h"
+#include "application.h"
 
 #include <esp_log.h>
 #include <cstring>
@@ -21,6 +22,10 @@ bool Esp32VoiceChanger::SetVoice(const std::string& voice_type) {
     ESP_LOGI(TAG, "Setting voice to: %s", voice_type.c_str());
     // TODO: 这里将来会实现具体的音色切换逻辑
     current_voice_ = voice_type;
+    
+    // 通过 WebSocket 发送音色变化消息给服务器
+    Application::GetInstance().SendVoiceChange(voice_type);
+    
     return true;
 }
 

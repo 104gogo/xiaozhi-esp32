@@ -1113,6 +1113,14 @@ void Application::SendMcpMessage(const std::string& payload) {
     });
 }
 
+void Application::SendVoiceChange(const std::string& voice_type) {
+    Schedule([this, voice_type]() {
+        if (protocol_) {
+            protocol_->SendVoiceChange(voice_type);
+        }
+    });
+}
+
 void Application::SetAecMode(AecMode mode) {
     aec_mode_ = mode;
     Schedule([this]() {
