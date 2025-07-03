@@ -169,3 +169,27 @@ void OttoEmojiDisplay::SetIcon(const char* icon) {
         ESP_LOGI(TAG, "设置图标: %s", icon);
     }
 }
+
+void OttoEmojiDisplay::SetMusicInfo(const char* song_name) {
+    if (!song_name) {
+        return;
+    }
+
+    DisplayLockGuard lock(this);
+
+    if (chat_message_label_ == nullptr) {
+        return;
+    }
+
+    if (strlen(song_name) > 0) {
+        std::string music_text = song_name;
+        lv_label_set_text(chat_message_label_, music_text.c_str());
+        lv_obj_clear_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
+        
+        ESP_LOGI(TAG, "设置音乐信息: %s", song_name);
+    } else {
+        // 清空音乐信息显示
+        lv_label_set_text(chat_message_label_, "");
+        lv_obj_add_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
+    }
+}

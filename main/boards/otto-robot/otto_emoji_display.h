@@ -29,6 +29,9 @@ public:
     // 添加SetIcon方法声明
     virtual void SetIcon(const char* icon) override;
 
+    // 重写SetMusicInfo方法
+    virtual void SetMusicInfo(const char* song_name) override;
+
 private:
     void SetupGifContainer();
 
