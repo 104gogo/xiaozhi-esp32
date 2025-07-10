@@ -101,6 +101,11 @@ Application::~Application() {
 }
 
 void Application::CheckNewVersion(Ota& ota) {
+    // 跳过OTA版本检查，直接标记检查完成
+    ESP_LOGI(TAG, "Skipping OTA version check");
+    xEventGroupSetBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT);
+    return;
+
     const int MAX_RETRY = 10;
     int retry_count = 0;
     int retry_delay = 10; // 初始重试延迟为10秒
