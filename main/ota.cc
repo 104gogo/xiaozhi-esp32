@@ -218,18 +218,9 @@ bool Ota::CheckVersion() {
         }
 
         if (cJSON_IsString(version) && cJSON_IsString(url)) {
-            // Check if the version is newer, for example, 0.1.0 is newer than 0.0.1
-            has_new_version_ = IsNewVersionAvailable(current_version_, firmware_version_);
-            if (has_new_version_) {
-                ESP_LOGI(TAG, "New version available: %s", firmware_version_.c_str());
-            } else {
-                ESP_LOGI(TAG, "Current is the latest version");
-            }
-            // If the force flag is set to 1, the given version is forced to be installed
-            cJSON *force = cJSON_GetObjectItem(firmware, "force");
-            if (cJSON_IsNumber(force) && force->valueint == 1) {
-                has_new_version_ = true;
-            }
+            // 跳过版本比较，直接设置为无新版本
+            has_new_version_ = false;
+            ESP_LOGD(TAG, "Version check disabled, current version: %s, server version: %s", current_version_.c_str(), firmware_version_.c_str());
         }
     } else {
         ESP_LOGW(TAG, "No firmware section found!");

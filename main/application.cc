@@ -101,11 +101,6 @@ Application::~Application() {
 }
 
 void Application::CheckNewVersion(Ota& ota) {
-    // 跳过OTA版本检查，直接标记检查完成
-    ESP_LOGI(TAG, "Skipping OTA version check");
-    xEventGroupSetBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT);
-    return;
-
     const int MAX_RETRY = 10;
     int retry_count = 0;
     int retry_delay = 10; // 初始重试延迟为10秒
@@ -113,6 +108,9 @@ void Application::CheckNewVersion(Ota& ota) {
     while (true) {
         SetDeviceState(kDeviceStateActivating);
         auto display = Board::GetInstance().GetDisplay();
+        
+        // 跳过版本检查，但尝试获取配置
+        ESP_LOGI(TAG, "Skipping version check, but trying to get configuration");
         display->SetStatus(Lang::Strings::CHECKING_NEW_VERSION);
 
         if (!ota.CheckVersion()) {
@@ -139,48 +137,10 @@ void Application::CheckNewVersion(Ota& ota) {
         retry_count = 0;
         retry_delay = 10; // 重置重试延迟时间
 
-        if (ota.HasNewVersion()) {
-            Alert(Lang::Strings::OTA_UPGRADE, Lang::Strings::UPGRADING, "happy", Lang::Sounds::P3_UPGRADE);
-
-            vTaskDelay(pdMS_TO_TICKS(3000));
-
-            SetDeviceState(kDeviceStateUpgrading);
-            
-            display->SetIcon(FONT_AWESOME_DOWNLOAD);
-            std::string message = std::string(Lang::Strings::NEW_VERSION) + ota.GetFirmwareVersion();
-            display->SetChatMessage("system", message.c_str());
-
-            auto& board = Board::GetInstance();
-            board.SetPowerSaveMode(false);
-            wake_word_->StopDetection();
-            // 预先关闭音频输出，避免升级过程有音频操作
-            auto codec = board.GetAudioCodec();
-            codec->EnableInput(false);
-            codec->EnableOutput(false);
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                audio_decode_queue_.clear();
-            }
-            background_task_->WaitForCompletion();
-            delete background_task_;
-            background_task_ = nullptr;
-            vTaskDelay(pdMS_TO_TICKS(1000));
-
-            ota.StartUpgrade([display](int progress, size_t speed) {
-                char buffer[64];
-                snprintf(buffer, sizeof(buffer), "%d%% %uKB/s", progress, speed / 1024);
-                display->SetChatMessage("system", buffer);
-            });
-
-            // If upgrade success, the device will reboot and never reach here
-            display->SetStatus(Lang::Strings::UPGRADE_FAILED);
-            ESP_LOGI(TAG, "Firmware upgrade failed...");
-            vTaskDelay(pdMS_TO_TICKS(3000));
-            Reboot();
-            return;
-        }
-
-        // No new version, mark the current version as valid
+        // 跳过版本升级逻辑，直接处理激活码相关逻辑
+        ESP_LOGI(TAG, "Skipping firmware upgrade, checking activation");
+        
+        // 标记当前版本为有效，但不进行升级
         ota.MarkCurrentVersionValid();
         if (!ota.HasActivationCode() && !ota.HasActivationChallenge()) {
             xEventGroupSetBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT);
