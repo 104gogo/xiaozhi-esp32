@@ -219,6 +219,9 @@ else()
     list(APPEND SOURCES "audio_processing/no_wake_word.cc")
 endif()
 
+# 添加opus处理器到构建系统
+list(APPEND SOURCES "audio_processing/opus_processor.cc")
+
 # 根据Kconfig选择语言目录
 if(CONFIG_LANGUAGE_ZH_CN)
     set(LANG_DIR "zh-CN")

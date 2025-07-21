@@ -11,12 +11,24 @@
 #include "assets/lang_config.h"
 #include "power_manager.h"
 
+
 #include <esp_log.h>
 #include <esp_lcd_panel_vendor.h>
 #include <wifi_station.h>
 
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
+
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0001.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0002.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0003.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0004.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0005.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0006.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0007.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0008.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0009.h"
+#include "images/xingzhi-cube-1.54/panda/gImage_output_0010.h"
 
 #define TAG "XINGZHI_CUBE_1_54TFT_WIFI"
 
@@ -34,6 +46,8 @@ private:
     PowerManager* power_manager_;
     esp_lcd_panel_io_handle_t panel_io_ = nullptr;
     esp_lcd_panel_handle_t panel_ = nullptr;
+    
+    TaskHandle_t image_task_handle_ = nullptr; // 图片显示任务句柄
 
     void InitializePowerManager() {
         power_manager_ = new PowerManager(GPIO_NUM_38);
@@ -174,6 +188,141 @@ private:
         thing_manager.AddThing(iot::CreateThing("Battery"));
     }
 
+    // 启动图片循环显示任务
+    void StartImageSlideshow() {
+        xTaskCreate(ImageSlideshowTask, "img_slideshow", 4096, this, 3, &image_task_handle_);
+        ESP_LOGI(TAG, "图片循环显示任务已启动");
+    }
+    
+    // 图片循环显示任务函数
+    static void ImageSlideshowTask(void* arg) {
+        XINGZHI_CUBE_1_54TFT_WIFI* board = static_cast<XINGZHI_CUBE_1_54TFT_WIFI*>(arg);
+        Display* display = board->GetDisplay();
+        
+        if (!display) {
+            ESP_LOGE(TAG, "无法获取显示设备");
+            vTaskDelete(NULL);
+            return;
+        }
+        
+        // 获取AudioProcessor实例的事件组 - 从application.h中直接获取
+        auto& app = Application::GetInstance();
+        // 这里使用Application中可用的方法来判断音频状态
+        // 根据编译错误修改为可用的方法
+        
+        // 创建画布（如果不存在）
+        if (!display->HasCanvas()) {
+            display->CreateCanvas();
+        }
+        
+        // 设置图片显示参数
+        int imgWidth = 240;
+        int imgHeight = 240;
+        int x = 0;
+        int y = 0;
+        
+        // 设置图片数组
+        const uint8_t* imageArray[] = {
+            gImage_output_0001,
+            gImage_output_0002,
+            gImage_output_0003,
+            gImage_output_0004,
+            gImage_output_0005,
+            gImage_output_0006,
+            gImage_output_0007,
+            gImage_output_0008,
+            gImage_output_0009,
+            gImage_output_0010,
+            gImage_output_0009,
+            gImage_output_0008,
+            gImage_output_0007,
+            gImage_output_0006,
+            gImage_output_0005,
+            gImage_output_0004,
+            gImage_output_0003,
+            gImage_output_0002,
+            gImage_output_0001
+        };
+        const int totalImages = sizeof(imageArray) / sizeof(imageArray[0]);
+        
+        // 创建临时缓冲区用于字节序转换
+        uint16_t* convertedData = new uint16_t[imgWidth * imgHeight];
+        if (!convertedData) {
+            ESP_LOGE(TAG, "无法分配内存进行图像转换");
+            vTaskDelete(NULL);
+            return;
+        }
+        
+        // 先显示第一张图片
+        int currentIndex = 0;
+        const uint8_t* currentImage = imageArray[currentIndex];
+        
+        // 转换并显示第一张图片
+        for (int i = 0; i < imgWidth * imgHeight; i++) {
+            uint16_t pixel = ((uint16_t*)currentImage)[i];
+            convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+        }
+        display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+        ESP_LOGI(TAG, "初始显示图片");
+        
+        // 持续监控和处理图片显示
+        TickType_t lastUpdateTime = xTaskGetTickCount();
+        const TickType_t cycleInterval = pdMS_TO_TICKS(60); // 图片切换间隔60毫秒
+        
+        // 定义用于判断是否正在播放音频的变量
+        bool isAudioPlaying = false;
+        bool wasAudioPlaying = false;
+        
+        while (true) {
+            // 检查是否正在播放音频 - 使用应用程序状态判断
+            isAudioPlaying = (app.GetDeviceState() == kDeviceStateSpeaking);
+            
+            TickType_t currentTime = xTaskGetTickCount();
+            
+            // 如果正在播放音频且时间到了切换间隔
+            if (isAudioPlaying && (currentTime - lastUpdateTime >= cycleInterval)) {
+                // 更新索引到下一张图片
+                currentIndex = (currentIndex + 1) % totalImages;
+                currentImage = imageArray[currentIndex];
+                
+                // 转换并显示新图片
+                for (int i = 0; i < imgWidth * imgHeight; i++) {
+                    uint16_t pixel = ((uint16_t*)currentImage)[i];
+                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                }
+                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                // ESP_LOGI(TAG, "循环显示图片");
+                
+                // 更新上次更新时间
+                lastUpdateTime = currentTime;
+            }
+            // 如果不在播放音频但上一次检查时在播放，或者当前不在第一张图片
+            else if ((!isAudioPlaying && wasAudioPlaying) || (!isAudioPlaying && currentIndex != 0)) {
+                // 切换回第一张图片
+                currentIndex = 0;
+                currentImage = imageArray[currentIndex];
+                
+                // 转换并显示第一张图片
+                for (int i = 0; i < imgWidth * imgHeight; i++) {
+                    uint16_t pixel = ((uint16_t*)currentImage)[i];
+                    convertedData[i] = ((pixel & 0xFF) << 8) | ((pixel & 0xFF00) >> 8);
+                }
+                display->DrawImageOnCanvas(x, y, imgWidth, imgHeight, (const uint8_t*)convertedData);
+                ESP_LOGI(TAG, "返回显示初始图片");
+            }
+            
+            // 更新上一次音频播放状态
+            wasAudioPlaying = isAudioPlaying;
+            
+            // 短暂延时，避免CPU占用过高
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        
+        // 释放资源（实际上不会执行到这里，除非任务被外部终止）
+        delete[] convertedData;
+        vTaskDelete(NULL);
+    }
+
 public:
     XINGZHI_CUBE_1_54TFT_WIFI() :
         boot_button_(BOOT_BUTTON_GPIO),
@@ -186,6 +335,9 @@ public:
         InitializeSt7789Display();  
         InitializeIot();
         GetBacklight()->RestoreBrightness();
+
+        // 启动图片循环显示任务
+        StartImageSlideshow();
     }
 
     virtual AudioCodec* GetAudioCodec() override {
