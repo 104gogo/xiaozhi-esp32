@@ -15,12 +15,24 @@
 #include <driver/i2c_master.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lcd_panel_vendor.h>
+#include "touch_button.h"
+#include "touch_sensor_lowlevel.h"
 
 #ifdef SH1106
 #include <esp_lcd_panel_sh1106.h>
 #endif
 
 #define TAG "CompactWifiBoard"
+
+// 触摸通道定义
+#define TOUCH_CHANNEL_1        (8)
+#define TOUCH_CHANNEL_2        (9)
+
+
+// 触摸阈值定义
+#define LIGHT_TOUCH_THRESHOLD  (0.1)
+#define HEAVY_TOUCH_THRESHOLD  (0.4)
+
 
 LV_FONT_DECLARE(font_puhui_14_1);
 LV_FONT_DECLARE(font_awesome_14_1);
@@ -35,6 +47,24 @@ private:
     Button touch_button_;
     Button volume_up_button_;
     Button volume_down_button_;
+
+    // 触摸按钮句柄
+    button_handle_t touch_btn_light_1_ = nullptr;
+    button_handle_t touch_btn_light_2_ = nullptr;
+
+    static void touch_event_light_1(void *arg, void *data)
+    {
+        button_handle_t btn_handle = static_cast<button_handle_t>(arg);
+        button_event_t event = iot_button_get_event(btn_handle);
+        ESP_LOGI(TAG, "Light Button 1: %s", iot_button_get_event_str(event));
+    }
+
+    static void touch_event_light_2(void *arg, void *data)
+    {
+        button_handle_t btn_handle = static_cast<button_handle_t>(arg);
+        button_event_t event = iot_button_get_event(btn_handle);
+        ESP_LOGI(TAG, "Light Button 2: %s", iot_button_get_event_str(event));
+    }
 
     void InitializeDisplayI2c() {
         i2c_master_bus_config_t bus_config = {
@@ -105,6 +135,90 @@ private:
             {&font_puhui_14_1, &font_awesome_14_1});
     }
 
+    // 初始化触摸按钮
+    void InitializeTouchButtons() {
+        ESP_LOGI(TAG, "开始初始化触摸按钮");
+        
+        // 注册所有触摸通道
+        uint32_t touch_channel_list[] = {TOUCH_CHANNEL_1, TOUCH_CHANNEL_2};
+        uint32_t total_channel_num = sizeof(touch_channel_list) / sizeof(touch_channel_list[0]);
+        
+        ESP_LOGI(TAG, "触摸通道: IO%d, IO%d", TOUCH_CHANNEL_1, TOUCH_CHANNEL_2);
+
+        // 为每个按钮分配通道类型
+        touch_lowlevel_type_t *channel_type = (touch_lowlevel_type_t*)calloc(total_channel_num, sizeof(touch_lowlevel_type_t));
+        if (channel_type == NULL) {
+            ESP_LOGE(TAG, "内存分配失败");
+            return;
+        }
+        
+        for (uint32_t i = 0; i < total_channel_num; i++) {
+            channel_type[i] = TOUCH_LOWLEVEL_TYPE_TOUCH;
+        }
+
+        touch_lowlevel_config_t low_config = {
+            .channel_num = total_channel_num,
+            .channel_list = touch_channel_list,
+            .channel_type = channel_type,
+        };
+        
+        esp_err_t ret = touch_sensor_lowlevel_create(&low_config);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "触摸传感器底层创建失败: %d", ret);
+            free(channel_type);
+            return;
+        }
+        
+        ESP_LOGI(TAG, "触摸传感器底层创建成功");
+        free(channel_type);
+
+        // 按钮配置
+        const button_config_t btn_cfg = {
+            .long_press_time = 2000,
+            .short_press_time = 300,
+        };
+
+        // 配置触摸按钮 1 
+        button_touch_config_t touch_cfg_1 = {
+            .touch_channel = static_cast<int32_t>(touch_channel_list[0]),
+            .channel_threshold = LIGHT_TOUCH_THRESHOLD,
+            .skip_lowlevel_init = true,
+        };
+        
+        ret = iot_button_new_touch_button_device(&btn_cfg, &touch_cfg_1, &touch_btn_light_1_);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "创建触摸按钮1失败: %d", ret);
+            return;
+        }
+        ESP_LOGI(TAG, "触摸按钮1创建成功");
+
+        // 配置触摸按钮 2 
+        button_touch_config_t touch_cfg_2 = {
+            .touch_channel = static_cast<int32_t>(touch_channel_list[1]),
+            .channel_threshold = LIGHT_TOUCH_THRESHOLD,
+            .skip_lowlevel_init = true,
+        };
+        
+        ret = iot_button_new_touch_button_device(&btn_cfg, &touch_cfg_2, &touch_btn_light_2_);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "创建触摸按钮2失败: %d", ret);
+            return;
+        }
+        ESP_LOGI(TAG, "触摸按钮2创建成功");
+
+        iot_button_register_cb(touch_btn_light_1_, BUTTON_PRESS_DOWN, NULL, touch_event_light_1, NULL);
+        iot_button_register_cb(touch_btn_light_2_, BUTTON_PRESS_DOWN, NULL, touch_event_light_2, NULL);
+
+        // 启动触摸传感器
+        ret = touch_sensor_lowlevel_start();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "触摸传感器启动失败: %d", ret);
+            return;
+        }
+        
+        ESP_LOGI(TAG, "触摸按钮初始化完成");
+    }
+
     void InitializeButtons() {
         boot_button_.OnClick([this]() {
             auto& app = Application::GetInstance();
@@ -165,6 +279,7 @@ public:
         InitializeDisplayI2c();
         InitializeSsd1306Display();
         InitializeButtons();
+        InitializeTouchButtons();
         InitializeTools();
     }
 

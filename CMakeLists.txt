@@ -5,6 +5,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(PROJECT_VER "1.8.3")
+set(COMPONENT_REQUIRES touch_button)
 
 # Add this line to disable the specific warning
 add_compile_options(-Wno-missing-field-initializers)
