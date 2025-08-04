@@ -209,8 +209,9 @@ bool Esp32Music::Download(const std::string& song_name) {
     current_song_name_ = song_name;
     
     // 第一步：请求stream_pcm接口获取音频信息
-    std::string api_url = "http://www.jsrc.top:5566/stream_pcm";
-    std::string full_url = api_url + "?song=" + url_encode(song_name);
+    std::string api_url = "https://api.yaohud.cn/api/music/wy";
+    std::string key = "xR4RDwnsoiqsC7Za4Hk";
+    std::string full_url = api_url + "?key=" + key + "&msg=" + url_encode(song_name) + "&n=1";
     
     ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
@@ -236,7 +237,35 @@ bool Esp32Music::Download(const std::string& song_name) {
     }
     
     // 读取响应数据
-    last_downloaded_data_ = http->ReadAll();
+    last_downloaded_data_.clear();
+    char buffer[1024];
+    int bytes_read;
+    int total_read = 0;
+    
+    while (true) {
+        bytes_read = http->Read(buffer, sizeof(buffer) - 1);
+        
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0';
+            last_downloaded_data_ += buffer;
+            total_read += bytes_read;
+        } else if (bytes_read == 0) {
+            // 正常结束，没有更多数据
+            ESP_LOGD(TAG, "Music API response read completed, total bytes: %d", total_read);
+            break;
+        } else {
+            // bytes_read < 0，读取错误
+            if (!last_downloaded_data_.empty()) {
+                ESP_LOGW(TAG, "HTTP read returned %d, but we have data (%d bytes), continuing", bytes_read, last_downloaded_data_.length());
+                break;
+            } else {
+                ESP_LOGE(TAG, "Failed to read music API response: error code %d", bytes_read);
+                http->Close();
+                return false;
+            }
+        }
+    }
+    
     http->Close();
     
     ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d", status_code, last_downloaded_data_.length());
@@ -246,11 +275,33 @@ bool Esp32Music::Download(const std::string& song_name) {
         // 解析响应JSON以提取音频URL
         cJSON* response_json = cJSON_Parse(last_downloaded_data_.c_str());
         if (response_json) {
-            // 提取关键信息
-            cJSON* artist = cJSON_GetObjectItem(response_json, "artist");
-            cJSON* title = cJSON_GetObjectItem(response_json, "title");
-            cJSON* audio_url = cJSON_GetObjectItem(response_json, "audio_url");
-            cJSON* lyric_url = cJSON_GetObjectItem(response_json, "lyric_url");
+            // 检查响应是否成功
+            cJSON* code = cJSON_GetObjectItem(response_json, "code");
+            if (!cJSON_IsNumber(code) || code->valueint != 200) {
+                ESP_LOGE(TAG, "API response error, code: %d", cJSON_IsNumber(code) ? code->valueint : -1);
+                cJSON_Delete(response_json);
+                return false;
+            }
+            
+            // 获取data对象
+            cJSON* data = cJSON_GetObjectItem(response_json, "data");
+            if (!cJSON_IsObject(data)) {
+                ESP_LOGE(TAG, "No 'data' object found in API response");
+                cJSON_Delete(response_json);
+                return false;
+            }
+            
+            // 提取关键信息（从data对象中）
+            cJSON* artist = cJSON_GetObjectItem(data, "songname");
+            cJSON* title = cJSON_GetObjectItem(data, "name");
+            cJSON* audio_url = cJSON_GetObjectItem(data, "musicurl");
+            
+            // 获取歌词URL（在data.music.lrc中）
+            cJSON* music = cJSON_GetObjectItem(data, "music");
+            cJSON* lyric_url = nullptr;
+            if (cJSON_IsObject(music)) {
+                lyric_url = cJSON_GetObjectItem(music, "lrc");
+            }
             
             if (cJSON_IsString(artist)) {
                 ESP_LOGI(TAG, "Artist: %s", artist->valuestring);
@@ -264,19 +315,7 @@ bool Esp32Music::Download(const std::string& song_name) {
                 ESP_LOGI(TAG, "Audio URL path: %s", audio_url->valuestring);
                 
                 // 第二步：拼接完整的音频下载URL，确保对audio_url进行URL编码
-                std::string base_url = "http://www.jsrc.top:5566";
-                std::string audio_path = audio_url->valuestring;
-                
-                // 使用统一的URL构建功能
-                if (audio_path.find("?") != std::string::npos) {
-                    size_t query_pos = audio_path.find("?");
-                    std::string path = audio_path.substr(0, query_pos);
-                    std::string query = audio_path.substr(query_pos + 1);
-                    
-                    current_music_url_ = buildUrlWithParams(base_url, path, query);
-                } else {
-                    current_music_url_ = base_url + audio_path;
-                }
+                current_music_url_ = audio_url->valuestring;
                 
                 ESP_LOGI(TAG, "小智开源音乐固件qq交流群:826072986");
                 ESP_LOGI(TAG, "Starting streaming playback for: %s", song_name.c_str());
@@ -284,37 +323,37 @@ bool Esp32Music::Download(const std::string& song_name) {
                 StartStreaming(current_music_url_);
                 
                 // 处理歌词URL
-                if (cJSON_IsString(lyric_url) && lyric_url->valuestring && strlen(lyric_url->valuestring) > 0) {
-                    // 拼接完整的歌词下载URL，使用相同的URL构建逻辑
-                    std::string lyric_path = lyric_url->valuestring;
-                    if (lyric_path.find("?") != std::string::npos) {
-                        size_t query_pos = lyric_path.find("?");
-                        std::string path = lyric_path.substr(0, query_pos);
-                        std::string query = lyric_path.substr(query_pos + 1);
+                // if (cJSON_IsString(lyric_url) && lyric_url->valuestring && strlen(lyric_url->valuestring) > 0) {
+                //     // 拼接完整的歌词下载URL，使用相同的URL构建逻辑
+                //     std::string lyric_path = lyric_url->valuestring;
+                //     if (lyric_path.find("?") != std::string::npos) {
+                //         size_t query_pos = lyric_path.find("?");
+                //         std::string path = lyric_path.substr(0, query_pos);
+                //         std::string query = lyric_path.substr(query_pos + 1);
                         
-                        current_lyric_url_ = buildUrlWithParams(base_url, path, query);
-                    } else {
-                        current_lyric_url_ = base_url + lyric_path;
-                    }
+                //         current_lyric_url_ = buildUrlWithParams(base_url, path, query);
+                //     } else {
+                //         current_lyric_url_ = base_url + lyric_path;
+                //     }
                     
-                    ESP_LOGI(TAG, "Loading lyrics for: %s", song_name.c_str());
+                //     ESP_LOGI(TAG, "Loading lyrics for: %s", song_name.c_str());
                     
-                    // 启动歌词下载和显示
-                    if (is_lyric_running_) {
-                        is_lyric_running_ = false;
-                        if (lyric_thread_.joinable()) {
-                            lyric_thread_.join();
-                        }
-                    }
+                //     // 启动歌词下载和显示
+                //     if (is_lyric_running_) {
+                //         is_lyric_running_ = false;
+                //         if (lyric_thread_.joinable()) {
+                //             lyric_thread_.join();
+                //         }
+                //     }
                     
-                    is_lyric_running_ = true;
-                    current_lyric_index_ = -1;
-                    lyrics_.clear();
+                //     is_lyric_running_ = true;
+                //     current_lyric_index_ = -1;
+                //     lyrics_.clear();
                     
-                    lyric_thread_ = std::thread(&Esp32Music::LyricDisplayThread, this);
-                } else {
-                    ESP_LOGW(TAG, "No lyric URL found for this song");
-                }
+                //     lyric_thread_ = std::thread(&Esp32Music::LyricDisplayThread, this);
+                // } else {
+                //     ESP_LOGW(TAG, "No lyric URL found for this song");
+                // }
                 
                 cJSON_Delete(response_json);
                 return true;
