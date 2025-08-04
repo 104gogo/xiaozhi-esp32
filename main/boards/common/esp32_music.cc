@@ -210,7 +210,7 @@ bool Esp32Music::Download(const std::string& song_name) {
     
     // 第一步：请求stream_pcm接口获取音频信息
     std::string api_url = "https://api.yaohud.cn/api/music/wy";
-    std::string key = "xR4RDwnsoiqsC7Za4Hk";
+    std::string key = "your_api_key";
     std::string full_url = api_url + "?key=" + key + "&msg=" + url_encode(song_name) + "&n=1";
     
     ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
@@ -555,8 +555,8 @@ void Esp32Music::DownloadAudioStream(const std::string& music_url) {
     
     ESP_LOGI(TAG, "Started downloading audio stream, status: %d", status_code);
     
-    // 分块读取音频数据
-    const size_t chunk_size = 4096;  // 4KB每块
+    // 分块读取音频数据（降低chunk_size减少瞬时功耗）
+    const size_t chunk_size = 2048;  // 2KB每块，减少瞬时内存分配和功耗
     char buffer[chunk_size];
     size_t total_downloaded = 0;
     
@@ -627,6 +627,11 @@ void Esp32Music::DownloadAudioStream(const std::string& music_url) {
                 
                 if (total_downloaded % (256 * 1024) == 0) {  // 每256KB打印一次进度
                     ESP_LOGI(TAG, "Downloaded %d bytes, buffer size: %d", total_downloaded, buffer_size_);
+                }
+                
+                // 添加适当延时，减少连续高功耗操作，降低brownout风险
+                if (total_downloaded % (64 * 1024) == 0) {  // 每64KB延时一次
+                    vTaskDelay(pdMS_TO_TICKS(10));  // 10ms延时
                 }
             } else {
                 heap_caps_free(chunk_data);
@@ -831,8 +836,8 @@ void Esp32Music::PlayAudioStream() {
                     mp3_frame_info_.samprate, mp3_frame_info_.nChans);
             
             // 更新歌词显示
-            int buffer_latency_ms = 600; // 实测调整值
-            UpdateLyricDisplay(current_play_time_ms_ + buffer_latency_ms);
+            // int buffer_latency_ms = 600; // 实测调整值
+            // UpdateLyricDisplay(current_play_time_ms_ + buffer_latency_ms);
             
             // 将PCM数据发送到Application的音频解码队列
             if (mp3_frame_info_.outputSamps > 0) {
