@@ -1,7 +1,7 @@
 #include "esp32_music.h"
 #include "board.h"
 #include "system_info.h"
-#include "audio_codecs/audio_codec.h"
+#include "audio/audio_codec.h"
 #include "application.h"
 #include "protocols/protocol.h"
 #include "display/display.h"
@@ -210,13 +210,14 @@ bool Esp32Music::Download(const std::string& song_name) {
     
     // 第一步：请求stream_pcm接口获取音频信息
     std::string api_url = "https://api.yaohud.cn/api/music/wy";
-    std::string key = "your_api_key";
+    std::string key = "xR4RDwnsoiqsC7Za4Hk";
     std::string full_url = api_url + "?key=" + key + "&msg=" + url_encode(song_name) + "&n=1";
     
     ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
     // 使用Board提供的HTTP客户端
-    auto http = Board::GetInstance().CreateHttp();
+    auto network = Board::GetInstance().GetNetwork();
+    auto http = network->CreateHttp(0);
     
     // 设置请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
@@ -532,7 +533,8 @@ void Esp32Music::DownloadAudioStream(const std::string& music_url) {
         return;
     }
     
-    auto http = Board::GetInstance().CreateHttp();
+    auto network = Board::GetInstance().GetNetwork();
+    auto http = network->CreateHttp(0);
     
     // 设置请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
@@ -1046,7 +1048,9 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         }
         
         // 使用Board提供的HTTP客户端
-        auto http = Board::GetInstance().CreateHttp();
+        auto network = Board::GetInstance().GetNetwork();
+        auto http = network->CreateHttp(0);
+
         if (!http) {
             ESP_LOGE(TAG, "Failed to create HTTP client for lyric download");
             retry_count++;
@@ -1061,7 +1065,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         ESP_LOGI(TAG, "小智开源音乐固件qq交流群:826072986");
         if (!http->Open("GET", current_url)) {
             ESP_LOGE(TAG, "Failed to open HTTP connection for lyrics");
-            delete http;
+            http->Close();
             retry_count++;
             continue;
         }
@@ -1075,7 +1079,6 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
             // 由于无法获取Location头，只能报告重定向但无法继续
             ESP_LOGW(TAG, "Received redirect status %d but cannot follow redirect (no GetHeader method)", status_code);
             http->Close();
-            delete http;
             retry_count++;
             continue;
         }
@@ -1084,7 +1087,6 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         if (status_code < 200 || status_code >= 300) {
             ESP_LOGE(TAG, "HTTP GET failed with status code: %d", status_code);
             http->Close();
-            delete http;
             retry_count++;
             continue;
         }
@@ -1133,7 +1135,6 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         }
         
         http->Close();
-        delete http;
         
         if (read_error) {
             retry_count++;
