@@ -106,6 +106,8 @@ public:
     void PlaySound(const std::string_view& sound);
     bool ReadAudioData(std::vector<int16_t>& data, int sample_rate, int samples);
     void ResetDecoder();
+    
+    void UpdateOutputTimestamp();
 
 private:
     AudioCodec* codec_ = nullptr;

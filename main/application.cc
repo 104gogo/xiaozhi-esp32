@@ -855,6 +855,8 @@ void Application::AddAudioData(AudioStreamPacket&& packet) {
             
             // 发送PCM数据到音频编解码器
             codec->OutputData(pcm_data);
+            
+            audio_service_.UpdateOutputTimestamp();
         }
     }
 }
