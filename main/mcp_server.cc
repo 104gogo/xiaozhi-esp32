@@ -108,20 +108,24 @@ void McpServer::AddCommonTools() {
         AddTool("self.music.play_song",
             "播放指定的歌曲。当用户要求播放音乐时使用此工具，会自动获取歌曲详情并开始流式播放。\n"
             "参数:\n"
-            "  `song_name`: 要播放的歌曲名称。\n"
+            "  `song_name`: 要播放的歌曲名称（必需）。\n"
+            "  `artist_name`: 要播放的歌曲艺术家名称（可选，默认为空字符串）。\n"
             "返回:\n"
             "  播放状态信息，不需确认，立刻播放歌曲。",
             PropertyList({
-                Property("song_name", kPropertyTypeString)
+                Property("song_name", kPropertyTypeString),//歌曲名称（必需）
+                Property("artist_name", kPropertyTypeString, "")//艺术家名称（可选，默认为空字符串）
             }),
             [music](const PropertyList& properties) -> ReturnValue {
                 auto song_name = properties["song_name"].value<std::string>();
-                if (!music->Download(song_name)) {
+                auto artist_name = properties["artist_name"].value<std::string>();
+                
+                if (!music->Download(song_name, artist_name)) {
                     return "{\"success\": false, \"message\": \"获取音乐资源失败\"}";
                 }
                 auto download_result = music->GetDownloadResult();
-                ESP_LOGD(TAG, "Music details result: %s", download_result.c_str());
-                return true;
+                ESP_LOGI(TAG, "Music details result: %s", download_result.c_str());
+                return "{\"success\": true, \"message\": \"音乐开始播放\"}";
             });
     }
 

@@ -81,7 +81,7 @@ public:
     Esp32Music();
     ~Esp32Music();
 
-    virtual bool Download(const std::string& song_name) override;
+    virtual bool Download(const std::string& song_name, const std::string& artist_name) override;
     virtual bool Play() override;
     virtual bool Stop() override;
     virtual std::string GetDownloadResult() override;

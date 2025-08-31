@@ -280,7 +280,7 @@ Esp32Music::~Esp32Music() {
     ESP_LOGI(TAG, "Music player destroyed successfully");
 }
 
-bool Esp32Music::Download(const std::string& song_name) {
+bool Esp32Music::Download(const std::string& song_name, const std::string& artist_name) {
     ESP_LOGI(TAG, "小智开源音乐固件qq交流群:826072986");
     ESP_LOGI(TAG, "Starting to get music details for: %s", song_name.c_str());
     
@@ -291,8 +291,8 @@ bool Esp32Music::Download(const std::string& song_name) {
     current_song_name_ = song_name;
     
     // 第一步：请求stream_pcm接口获取音频信息
-    std::string api_url = "http://39.172.86.58:5566/stream_pcm";
-    std::string full_url = api_url + "?song=" + url_encode(song_name);
+    std::string base_url = "http://www.xiaozhishop.xyz:5005";
+    std::string full_url = base_url + "/stream_pcm?song=" + url_encode(song_name) + "&artist=" + url_encode(artist_name);
     
     ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
@@ -356,7 +356,6 @@ bool Esp32Music::Download(const std::string& song_name) {
                 ESP_LOGI(TAG, "Audio URL path: %s", audio_url->valuestring);
                 
                 // 第二步：拼接完整的音频下载URL，确保对audio_url进行URL编码
-                std::string base_url = "http://39.172.86.58:5566";
                 std::string audio_path = audio_url->valuestring;
                 
                 // 使用统一的URL构建功能
