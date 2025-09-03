@@ -26,6 +26,13 @@ struct AudioChunk {
 };
 
 class Esp32Music : public Music {
+public:
+    // 显示模式控制 - 移动到public区域
+    enum DisplayMode {
+        DISPLAY_MODE_SPECTRUM = 0,  // 默认显示频谱
+        DISPLAY_MODE_LYRICS = 1     // 显示歌词
+    };
+
 private:
     std::string last_downloaded_data_;
     std::string current_music_url_;
@@ -39,6 +46,8 @@ private:
     std::atomic<int> current_lyric_index_;
     std::thread lyric_thread_;
     std::atomic<bool> is_lyric_running_;
+    
+    std::atomic<DisplayMode> display_mode_;
     std::atomic<bool> is_playing_;
     std::atomic<bool> is_downloading_;
     std::thread play_thread_;
@@ -93,6 +102,10 @@ public:
     virtual size_t GetBufferSize() const override { return buffer_size_; }
     virtual bool IsDownloading() const override { return is_downloading_; }
     virtual int16_t* GetAudioData() override { return final_pcm_data_fft; }
+    
+    // 显示模式控制方法
+    void SetDisplayMode(DisplayMode mode);
+    DisplayMode GetDisplayMode() const { return display_mode_.load(); }
 };
 
 #endif // ESP32_MUSIC_H
