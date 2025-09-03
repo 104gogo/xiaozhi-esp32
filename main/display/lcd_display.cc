@@ -312,6 +312,24 @@ MipiLcdDisplay::MipiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel
 }
 
 LcdDisplay::~LcdDisplay() {
+    // 停止FFT任务
+    if (fft_task_handle != nullptr) {
+        ESP_LOGI(TAG, "Stopping FFT task in destructor");
+        fft_task_should_stop = true;
+        
+        // 等待任务停止
+        int wait_count = 0;
+        while (fft_task_handle != nullptr && wait_count < 100) {
+            vTaskDelay(pdMS_TO_TICKS(10));
+            wait_count++;
+        }
+        
+        if (fft_task_handle != nullptr) {
+            vTaskDelete(fft_task_handle);
+            fft_task_handle = nullptr;
+        }
+    }
+    
     // 然后再清理 LVGL 对象
     if (content_ != nullptr) {
         lv_obj_del(content_);
@@ -1218,14 +1236,14 @@ void LcdDisplay::start(){
     vTaskDelay(pdMS_TO_TICKS(500));
 
     // 创建周期性更新任务
-    TaskHandle_t fft_task_handle = nullptr;
+    fft_task_should_stop = false;  // 重置停止标志
     xTaskCreate(
         periodicUpdateTaskWrapper,
         "display_fft",      // 任务名称
         4096*2,             // 堆栈大小
         this,               // 参数
         1,                  // 优先级
-        &fft_task_handle    // 任务句柄
+        &fft_task_handle    // 保存到成员变量
     );
     
   
@@ -1262,7 +1280,7 @@ void LcdDisplay::periodicUpdateTask() {
     TickType_t lastDisplayTime = xTaskGetTickCount();
     TickType_t lastAudioTime = xTaskGetTickCount();
     
-    while (true) {
+    while (!fft_task_should_stop) {
         
         TickType_t currentTime = xTaskGetTickCount();
         
@@ -1303,6 +1321,10 @@ void LcdDisplay::periodicUpdateTask() {
         // 短暂延迟
         
     }
+    
+    ESP_LOGI(TAG, "FFT display task stopped");
+    fft_task_handle = nullptr;  // 清空任务句柄
+    vTaskDelete(NULL);  // 删除当前任务
 }
 
 
@@ -1530,6 +1552,66 @@ void LcdDisplay::clearScreen() {
     //lv_obj_invalidate(canvas_);
     std::fill_n(canvas_buffer_, canvas_width_ * canvas_height_, COLOR_BLACK);
 
+}
+
+void LcdDisplay::stopFft() {
+    ESP_LOGI(TAG, "Stopping FFT display");
+    
+    // 停止FFT显示任务
+    if (fft_task_handle != nullptr) {
+        ESP_LOGI(TAG, "Stopping FFT display task");
+        fft_task_should_stop = true;  // 设置停止标志
+        
+        // 等待任务停止（最多等待1秒）
+        int wait_count = 0;
+        while (fft_task_handle != nullptr && wait_count < 100) {
+            vTaskDelay(pdMS_TO_TICKS(10));
+            wait_count++;
+        }
+        
+        if (fft_task_handle != nullptr) {
+            ESP_LOGW(TAG, "FFT task did not stop gracefully, force deleting");
+            vTaskDelete(fft_task_handle);
+            fft_task_handle = nullptr;
+        } else {
+            ESP_LOGI(TAG, "FFT display task stopped successfully");
+        }
+    }
+    
+    // 使用显示锁保护所有操作
+    DisplayLockGuard lock(this);
+    
+    // 重置FFT状态变量
+    fft_data_ready = false;
+    audio_display_last_update = 0;
+    
+    // 重置频谱条高度
+    memset(current_heights, 0, sizeof(current_heights));
+    
+    // 重置平均功率谱数据
+    for (int i = 0; i < FFT_SIZE/2; i++) {
+        avg_power_spectrum[i] = -25.0f;
+    }
+    
+    // 删除FFT画布对象，让原始UI重新显示
+    if (canvas_ != nullptr) {
+        lv_obj_del(canvas_);
+        canvas_ = nullptr;
+        ESP_LOGI(TAG, "FFT canvas deleted");
+    }
+    
+    // 释放画布缓冲区内存
+    if (canvas_buffer_ != nullptr) {
+        heap_caps_free(canvas_buffer_);
+        canvas_buffer_ = nullptr;
+        ESP_LOGI(TAG, "FFT canvas buffer freed");
+    }
+    
+    // 重置画布尺寸变量
+    canvas_width_ = 0;
+    canvas_height_ = 0;
+    
+    ESP_LOGI(TAG, "FFT display stopped, original UI restored");
 }
 
 void LcdDisplay::MyUI(){

@@ -17,6 +17,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>  // 为isdigit函数
+#include <thread>   // 为线程ID比较
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -426,61 +427,7 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
     return false;
 }
 
-bool Esp32Music::Play() {
-    if (is_playing_.load()) {  // 使用atomic的load()
-        ESP_LOGW(TAG, "Music is already playing");
-        return true;
-    }
-    
-    if (last_downloaded_data_.empty()) {
-        ESP_LOGE(TAG, "No music data to play");
-        return false;
-    }
-    
-    // 清理之前的播放线程
-    if (play_thread_.joinable()) {
-        play_thread_.join();
-    }
-    
-    // 实际应调用流式播放接口
-    return StartStreaming(current_music_url_);
-}
 
-bool Esp32Music::Stop() {
-    if (!is_playing_ && !is_downloading_) {
-        ESP_LOGW(TAG, "Music is not playing or downloading");
-        return true;
-    }
-    
-    ESP_LOGI(TAG, "Stopping music playback and download");
-    
-    // 停止下载和播放
-    is_downloading_ = false;
-    is_playing_ = false;
-    
-    // 重置采样率到原始值
-    ResetSampleRate();
-    
-    // 通知所有等待的线程
-    {
-        std::lock_guard<std::mutex> lock(buffer_mutex_);
-        buffer_cv_.notify_all();
-    }
-    
-    // 等待线程结束
-    if (download_thread_.joinable()) {
-        download_thread_.join();
-    }
-    if (play_thread_.joinable()) {
-        play_thread_.join();
-    }
-    
-    // 清空缓冲区
-    ClearAudioBuffer();
-    
-    ESP_LOGI(TAG, "Music stopped successfully");
-    return true;
-}
 
 std::string Esp32Music::GetDownloadResult() {
     return last_downloaded_data_;
@@ -535,14 +482,6 @@ bool Esp32Music::StartStreaming(const std::string& music_url) {
     
     ESP_LOGI(TAG, "Streaming threads started successfully");
     
-    // 启动显示更新功能
-    auto& board = Board::GetInstance();
-    auto display = board.GetDisplay();
-    if (display) {
-        display->start();
-        ESP_LOGI(TAG, "Display start() called for music playback");
-    }
-    
     return true;
 }
 
@@ -576,6 +515,33 @@ bool Esp32Music::StopStreaming() {
     {
         std::lock_guard<std::mutex> lock(buffer_mutex_);
         buffer_cv_.notify_all();
+    }
+    
+    // 等待线程结束（避免重复代码，让StopStreaming也能等待线程完全停止）
+    if (download_thread_.joinable()) {
+        download_thread_.join();
+        ESP_LOGI(TAG, "Download thread joined in StopStreaming");
+    }
+    
+    // 检查是否在播放线程内部调用，避免线程自我等待死锁
+    if (play_thread_.joinable()) {
+        std::thread::id current_thread_id = std::this_thread::get_id();
+        std::thread::id play_thread_id = play_thread_.get_id();
+        
+        if (current_thread_id == play_thread_id) {
+            ESP_LOGI(TAG, "Called from play thread, skipping play_thread_.join()");
+            // 在播放线程内部调用，不能等待自己
+            // 线程会在方法返回后自然结束
+        } else {
+            play_thread_.join();
+            ESP_LOGI(TAG, "Play thread joined in StopStreaming");
+        }
+    }
+    
+    // 在线程完全结束后停止FFT显示
+    if (display) {
+        display->stopFft();
+        ESP_LOGI(TAG, "Stopped FFT display in StopStreaming");
     }
     
     ESP_LOGI(TAG, "Music streaming stop signal sent");
@@ -792,6 +758,12 @@ void Esp32Music::PlayAudioStream() {
                 ESP_LOGI(TAG, "Displaying song name: %s", formatted_song_name.c_str());
                 song_name_displayed_ = true;
             }
+
+            // 启动FFT显示更新功能
+            if (display) {
+                display->start();
+                ESP_LOGI(TAG, "Display start() called for music playback");
+            }
         }
         
         // 如果需要更多MP3数据，从缓冲区读取
@@ -989,22 +961,12 @@ void Esp32Music::PlayAudioStream() {
         heap_caps_free(mp3_input_buffer);
     }
     
-    // 播放结束时清空歌名显示
-    auto& board = Board::GetInstance();
-    auto display = board.GetDisplay();
-    if (display) {
-        display->SetMusicInfo("");  // 清空歌名显示
-        ESP_LOGI(TAG, "Cleared song name display on playback end");
-    }
-
-    // 重置采样率到原始值
-    ResetSampleRate();
-    
-    // 播放结束时保持音频输出启用状态，让Application管理
-    // 不在这里禁用音频输出，避免干扰其他音频功能
+    // 播放结束时调用StopStreaming进行完整清理
     ESP_LOGI(TAG, "Audio stream playback finished, total played: %d bytes", total_played);
+    ESP_LOGI(TAG, "Calling StopStreaming for complete cleanup");
     
-    is_playing_ = false;
+    // 调用StopStreaming方法进行完整的清理（包括stopFft）
+    StopStreaming();
 }
 
 // 清空音频缓冲区

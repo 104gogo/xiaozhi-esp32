@@ -52,7 +52,8 @@ protected:
     
     
   
-    void clearScreen();
+    virtual void clearScreen() override;
+    virtual void stopFft() override;  // 停止FFT显示
     
     // 定时任务方法
     void periodicUpdateTask();
@@ -79,6 +80,8 @@ protected:
 
     // FFT 相关变量
     int audio_display_last_update = 0;
+    std::atomic<bool> fft_task_should_stop = false;  // FFT任务停止标志
+    TaskHandle_t fft_task_handle = nullptr;          // FFT任务句柄
 
     float* fft_real;
     float* fft_imag;

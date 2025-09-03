@@ -8,8 +8,6 @@ public:
     virtual ~Music() = default;  // 添加虚析构函数
     
     virtual bool Download(const std::string& song_name, const std::string& artist_name = "") = 0;
-    virtual bool Play() = 0;
-    virtual bool Stop() = 0;
     virtual std::string GetDownloadResult() = 0;
     
     // 新增流式播放相关方法
