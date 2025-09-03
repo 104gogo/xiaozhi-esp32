@@ -77,6 +77,8 @@ private:
     // ID3标签处理
     size_t SkipId3Tag(uint8_t* data, size_t size);
 
+    int16_t* final_pcm_data_fft = nullptr;
+
 public:
     Esp32Music();
     ~Esp32Music();
@@ -91,6 +93,7 @@ public:
     virtual bool StopStreaming() override;  // 停止流式播放
     virtual size_t GetBufferSize() const override { return buffer_size_; }
     virtual bool IsDownloading() const override { return is_downloading_; }
+    virtual int16_t* GetAudioData() override { return final_pcm_data_fft; }
 };
 
 #endif // ESP32_MUSIC_H

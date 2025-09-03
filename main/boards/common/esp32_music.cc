@@ -534,6 +534,15 @@ bool Esp32Music::StartStreaming(const std::string& music_url) {
     play_thread_ = std::thread(&Esp32Music::PlayAudioStream, this);
     
     ESP_LOGI(TAG, "Streaming threads started successfully");
+    
+    // 启动显示更新功能
+    auto& board = Board::GetInstance();
+    auto display = board.GetDisplay();
+    if (display) {
+        display->start();
+        ESP_LOGI(TAG, "Display start() called for music playback");
+    }
+    
     return true;
 }
 
@@ -934,6 +943,19 @@ void Esp32Music::PlayAudioStream() {
                 size_t pcm_size_bytes = final_sample_count * sizeof(int16_t);
                 packet.payload.resize(pcm_size_bytes);
                 memcpy(packet.payload.data(), final_pcm_data, pcm_size_bytes);
+
+                if (final_pcm_data_fft == nullptr) {
+                    final_pcm_data_fft = (int16_t*)heap_caps_malloc(
+                        final_sample_count * sizeof(int16_t),
+                        MALLOC_CAP_SPIRAM
+                    );
+                }
+                
+                memcpy(
+                    final_pcm_data_fft,
+                    final_pcm_data,
+                    final_sample_count * sizeof(int16_t)
+                );
                 
                 ESP_LOGD(TAG, "Sending %d PCM samples (%d bytes, rate=%d, channels=%d->1) to Application", 
                         final_sample_count, pcm_size_bytes, mp3_frame_info_.samprate, mp3_frame_info_.nChans);
