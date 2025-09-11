@@ -764,8 +764,13 @@ void Esp32Music::PlayAudioStream() {
         DeviceState current_state = app.GetDeviceState();
         
         // 等小智把话说完了，变成聆听状态之后，马上转成待机状态，进入音乐播放
-        if (current_state == kDeviceStateListening) {
-            ESP_LOGI(TAG, "Device is in listening state, switching to idle state for music playback");
+        if (current_state == kDeviceStateListening || current_state == kDeviceStateSpeaking) {
+            if (current_state == kDeviceStateSpeaking) {
+                ESP_LOGI(TAG, "Device is in speaking state, switching to listening state for music playback");
+            }
+            if (current_state == kDeviceStateListening) {
+                ESP_LOGI(TAG, "Device is in listening state, switching to idle state for music playback");
+            }
             // 切换状态
             app.ToggleChatState(); // 变成待机状态
             vTaskDelay(pdMS_TO_TICKS(300));
