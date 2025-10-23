@@ -9,6 +9,7 @@
 #include "mcp_server.h"
 #include "assets.h"
 #include "settings.h"
+#include "boards/common/esp32_livestream.h"
 
 #include <cstring>
 #include <esp_log.h>
@@ -422,6 +423,8 @@ void Application::Start() {
     protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacket> packet) {
         if (device_state_ == kDeviceStateSpeaking) {
             audio_service_.PushPacketToDecodeQueue(std::move(packet));
+            // Update audio activity time when receiving new audio data
+            last_audio_activity_time_ = std::chrono::steady_clock::now();
         }
     });
     protocol_->OnAudioChannelOpened([this, codec, &board]() {
@@ -541,6 +544,20 @@ void Application::Start() {
         // Play the success sound to indicate the device is ready
         audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
     }
+
+    // Auto-connect to livestream server after successful initialization
+    auto livestream = board.GetLivestream();
+    if (livestream) {
+        ESP_LOGI(TAG, "Auto-connecting to livestream server...");
+        Schedule([livestream]() {
+            bool connected = livestream->ConnectToServer();
+            if (connected) {
+                ESP_LOGI(TAG, "Successfully connected to livestream server");
+            } else {
+                ESP_LOGW(TAG, "Failed to connect to livestream server");
+            }
+        });
+    }
 }
 
 // Add a async task to MainLoop
@@ -607,6 +624,11 @@ void Application::MainEventLoop() {
                 // SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
                 // SystemInfo::PrintTaskList();
                 SystemInfo::PrintHeapStats();
+            }
+
+            // Check speaking timeout when in speaking state
+            if (device_state_ == kDeviceStateSpeaking) {
+                CheckSpeakingTimeout();
             }
         }
     }
@@ -714,6 +736,10 @@ void Application::SetDeviceState(DeviceState state) {
                 audio_service_.EnableWakeWordDetection(audio_service_.IsAfeWakeWord());
             }
             audio_service_.ResetDecoder();
+            // Initialize speaking timeout monitoring
+            speaking_start_time_ = std::chrono::steady_clock::now();
+            last_audio_activity_time_ = speaking_start_time_;
+            speaking_timeout_handled_ = false;
             break;
         default:
             // Do nothing
@@ -869,4 +895,50 @@ void Application::SetAecMode(AecMode mode) {
 
 void Application::PlaySound(const std::string_view& sound) {
     audio_service_.PlaySound(sound);
+}
+
+void Application::CheckSpeakingTimeout() {
+    // If timeout has already been handled, don't process again
+    if (speaking_timeout_handled_) {
+        return;
+    }
+
+    auto now = std::chrono::steady_clock::now();
+    
+    // Check if total speaking time exceeds maximum timeout
+    auto speaking_duration = std::chrono::duration_cast<std::chrono::seconds>(now - speaking_start_time_).count();
+    if (speaking_duration >= SPEAKING_TIMEOUT_SECONDS) {
+        ESP_LOGW(TAG, "Speaking state timeout after %lld seconds, forcing back to idle", speaking_duration);
+        speaking_timeout_handled_ = true;  // Mark as handled to prevent repeated processing
+        Schedule([this]() {
+            Alert(Lang::Strings::ERROR, "Speaking timeout detected", "circle_xmark", Lang::Sounds::OGG_EXCLAMATION);
+            ToggleChatState();
+        });
+        return;
+    }
+    
+    // Check if speaking is stuck (no audio activity)
+    if (IsSpeakingStuck()) {
+        auto idle_duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_audio_activity_time_).count();
+        ESP_LOGW(TAG, "Speaking state stuck after %lld seconds of inactivity, forcing back to idle", idle_duration);
+        speaking_timeout_handled_ = true;  // Mark as handled to prevent repeated processing
+        Schedule([this]() {
+            Alert(Lang::Strings::ERROR, "Speaking stuck detected", "circle_xmark", Lang::Sounds::OGG_EXCLAMATION);
+            ToggleChatState();
+        });
+    }
+}
+
+bool Application::IsSpeakingStuck() {
+    auto now = std::chrono::steady_clock::now();
+    
+    // Update last audio activity time if there's audio activity
+    if (!audio_service_.IsIdle()) {
+        last_audio_activity_time_ = now;
+        return false;
+    }
+    
+    // Check if audio has been idle for too long
+    auto idle_duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_audio_activity_time_).count();
+    return idle_duration >= SPEAKING_AUDIO_IDLE_TIMEOUT_SECONDS;
 }

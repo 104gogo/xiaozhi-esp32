@@ -78,6 +78,20 @@ void Protocol::SendMcpMessage(const std::string& payload) {
     SendText(message);
 }
 
+void Protocol::SendNewMessage() {
+    std::string message = "{\"session_id\":\"" + session_id_ + "\",\"type\":\"new_message\"}";
+    SendText(message);
+}
+
+void Protocol::SendDeviceStatusUpdate(const std::string& control_type, int value, bool success) {
+    std::string message = "{\"session_id\":\"" + session_id_ + 
+                         "\",\"type\":\"device_status_update\"" +
+                         ",\"control_type\":\"" + control_type + "\"" +
+                         ",\"value\":" + std::to_string(value) +
+                         ",\"success\":" + (success ? "true" : "false") + "}";
+    SendText(message);
+}
+
 bool Protocol::IsTimeout() const {
     const int kTimeoutSeconds = 120;
     auto now = std::chrono::steady_clock::now();

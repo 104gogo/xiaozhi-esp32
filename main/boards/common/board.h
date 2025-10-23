@@ -17,6 +17,7 @@
 void* create_board();
 class AudioCodec;
 class Display;
+class Esp32Livestream;
 class Board {
 private:
     Board(const Board&) = delete; // 禁用拷贝构造函数
@@ -35,7 +36,7 @@ public:
         return *instance;
     }
 
-    virtual ~Board() = default;
+    virtual ~Board();
     virtual std::string GetBoardType() = 0;
     virtual std::string GetUuid() { return uuid_; }
     virtual Backlight* GetBacklight() { return nullptr; }
@@ -52,6 +53,7 @@ public:
     virtual void SetPowerSaveMode(bool enabled) = 0;
     virtual std::string GetBoardJson() = 0;
     virtual std::string GetDeviceStatusJson() = 0;
+    virtual Esp32Livestream* GetLivestream();
 };
 
 #define DECLARE_BOARD(BOARD_CLASS_NAME) \

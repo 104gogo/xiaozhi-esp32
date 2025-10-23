@@ -17,6 +17,7 @@
 #include "settings.h"
 #include "lvgl_theme.h"
 #include "lvgl_display.h"
+#include "boards/common/esp32_livestream.h"
 
 #define TAG "MCP"
 
@@ -74,6 +75,22 @@ void McpServer::AddCommonTools() {
                 uint8_t brightness = static_cast<uint8_t>(properties["brightness"].value<int>());
                 backlight->SetBrightness(brightness, true);
                 return true;
+            });
+    }
+
+    // 连接服务器工具
+    auto livestream = board.GetLivestream();
+    if (livestream) {
+        AddTool("self.server.connect",
+            "连接服务器。如果有人对你说'连接服务器'，你就使用这个工具.",
+            PropertyList(),
+            [livestream](const PropertyList& properties) -> ReturnValue {
+                bool connected = livestream->ConnectToServer();
+                if (connected) {
+                    return "{\"success\": true, \"message\": \"Successfully connected to server\"}";
+                } else {
+                    return "{\"success\": false, \"message\": \"Failed to connect to server\", \"status\": " + livestream->GetStatus() + "}";
+                }
             });
     }
 

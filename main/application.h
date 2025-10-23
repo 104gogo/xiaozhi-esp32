@@ -10,6 +10,7 @@
 #include <mutex>
 #include <deque>
 #include <memory>
+#include <chrono>
 
 #include "protocol.h"
 #include "ota.h"
@@ -24,6 +25,10 @@
 #define MAIN_EVENT_ERROR (1 << 4)
 #define MAIN_EVENT_CHECK_NEW_VERSION_DONE (1 << 5)
 #define MAIN_EVENT_CLOCK_TICK (1 << 6)
+
+// Speaking state timeout configuration
+#define SPEAKING_TIMEOUT_SECONDS 120
+#define SPEAKING_AUDIO_IDLE_TIMEOUT_SECONDS 5
 
 
 enum AecMode {
@@ -63,6 +68,7 @@ public:
     AecMode GetAecMode() const { return aec_mode_; }
     void PlaySound(const std::string_view& sound);
     AudioService& GetAudioService() { return audio_service_; }
+    Protocol& GetProtocol() { return *protocol_; }
 
 private:
     Application();
@@ -84,12 +90,18 @@ private:
     int clock_ticks_ = 0;
     TaskHandle_t check_new_version_task_handle_ = nullptr;
     TaskHandle_t main_event_loop_task_handle_ = nullptr;
+    // Speaking state timeout monitoring
+    std::chrono::steady_clock::time_point speaking_start_time_;
+    std::chrono::steady_clock::time_point last_audio_activity_time_;
+    bool speaking_timeout_handled_ = false;
 
     void OnWakeWordDetected();
     void CheckNewVersion(Ota& ota);
     void CheckAssetsVersion();
     void ShowActivationCode(const std::string& code, const std::string& message);
     void SetListeningMode(ListeningMode mode);
+    void CheckSpeakingTimeout();
+    bool IsSpeakingStuck();
 };
 
 

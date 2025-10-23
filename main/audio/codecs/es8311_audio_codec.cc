@@ -150,7 +150,10 @@ void Es8311AudioCodec::CreateDuplexChannels(gpio_num_t mclk, gpio_num_t bclk, gp
 }
 
 void Es8311AudioCodec::SetOutputVolume(int volume) {
-    ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(dev_, volume));
+    // 只在输出启用时设置音量，避免设备未打开时的错误
+    if (output_enabled_) {
+        ESP_ERROR_CHECK_WITHOUT_ABORT(esp_codec_dev_set_out_vol(dev_, volume));
+    }
     AudioCodec::SetOutputVolume(volume);
 }
 

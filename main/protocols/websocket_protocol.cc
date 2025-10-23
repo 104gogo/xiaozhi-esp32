@@ -84,6 +84,8 @@ bool WebsocketProtocol::OpenAudioChannel() {
     std::string url = settings.GetString("url");
     std::string token = settings.GetString("token");
     int version = settings.GetInt("version");
+    std::string appVersion = settings.GetString("appVersion");
+    std::string boardName = settings.GetString("boardName");
     if (version != 0) {
         version_ = version;
     }
@@ -107,6 +109,21 @@ bool WebsocketProtocol::OpenAudioChannel() {
     websocket_->SetHeader("Protocol-Version", std::to_string(version_).c_str());
     websocket_->SetHeader("Device-Id", SystemInfo::GetMacAddress().c_str());
     websocket_->SetHeader("Client-Id", Board::GetInstance().GetUuid().c_str());
+    websocket_->SetHeader("App-Version", appVersion.c_str());
+    websocket_->SetHeader("Board-Name", boardName.c_str());
+
+    // 设置设备状态信息到 header
+    std::string deviceStatus = settings.GetString("deviceStatus");
+    if (!deviceStatus.empty() && deviceStatus.length() > 2) { // 至少包含 "{}"
+        try {
+            websocket_->SetHeader("Device-Status", deviceStatus.c_str());
+            ESP_LOGI(TAG, "Device status header set (%d bytes)", (int)deviceStatus.length());
+        } catch (const std::exception& e) {
+            ESP_LOGE(TAG, "Failed to set device status header: %s", e.what());
+        }
+    } else {
+        ESP_LOGW(TAG, "Device status not found or invalid in settings, skipping header");
+    }
 
     websocket_->OnData([this](const char* data, size_t len, bool binary) {
         if (binary) {

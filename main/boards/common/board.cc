@@ -4,6 +4,7 @@
 #include "display/display.h"
 #include "display/oled_display.h"
 #include "assets/lang_config.h"
+#include "esp32_livestream.h"
 
 #include <esp_log.h>
 #include <esp_ota_ops.h>
@@ -20,6 +21,11 @@ Board::Board() {
         settings.SetString("uuid", uuid_);
     }
     ESP_LOGI(TAG, "UUID=%s SKU=%s", uuid_.c_str(), BOARD_NAME);
+}
+
+Board::~Board() {
+    // 析构函数需要在这里定义，确保Esp32Livestream的完整定义可见
+    // unique_ptr会自动清理livestream_
 }
 
 std::string Board::GenerateUuid() {
@@ -51,6 +57,11 @@ bool Board::GetBatteryLevel(int &level, bool& charging, bool& discharging) {
 
 bool Board::GetTemperature(float& esp32temp){
     return false;
+}
+
+Esp32Livestream* Board::GetLivestream() {
+    static Esp32Livestream livestream;
+    return &livestream;
 }
 
 Display* Board::GetDisplay() {
