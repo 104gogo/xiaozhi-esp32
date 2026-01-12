@@ -843,9 +843,11 @@ void Application::AddAudioData(AudioStreamPacket&& packet) {
                     
                     ESP_LOGI(TAG, "Upsampled %d -> %d samples (ratio: %.2f)", 
                             pcm_data.size(), resampled.size(), upsample_ratio);
+                    
+                    // 使用重采样后的数据
+                    pcm_data = std::move(resampled);
                 }
-                
-                pcm_data = std::move(resampled);
+                                
             }
             
             // 确保音频输出已启用
